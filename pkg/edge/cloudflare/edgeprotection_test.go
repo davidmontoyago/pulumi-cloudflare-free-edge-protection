@@ -12,9 +12,10 @@ import (
 )
 
 const (
-	testDomain      = "myapp.path2prod.dev"
-	testBackendURL  = "backend-service-abc123-uc.a.run.app"
-	testFrontendURL = "frontend-service-def456-uc.a.run.app"
+	testDomain              = "myapp.path2prod.dev"
+	testBackendURL          = "backend-service-abc123-uc.a.run.app"
+	testFrontendURL         = "frontend-service-def456-uc.a.run.app"
+	testCloudflareAccountID = "test-cloudflare-account-id-123"
 )
 
 type edgeProtectionMocks struct{}
@@ -93,6 +94,7 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 			Domain:              testDomain,
 			BackendURL:          testBackendURL,
 			FrontendURL:         testFrontendURL,
+			CloudflareAccountID: testCloudflareAccountID,
 			SecurityLevel:       pulumi.String("medium"),
 			CacheLevel:          pulumi.String("aggressive"),
 			BrowserCacheTTL:     pulumi.Int(14400),
@@ -270,9 +272,10 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		args := &cloudflare.EdgeProtectionArgs{
-			Domain:      testDomain,
-			BackendURL:  testBackendURL,
-			FrontendURL: testFrontendURL,
+			Domain:              testDomain,
+			BackendURL:          testBackendURL,
+			FrontendURL:         testFrontendURL,
+			CloudflareAccountID: testCloudflareAccountID,
 			// Using defaults for other fields
 		}
 

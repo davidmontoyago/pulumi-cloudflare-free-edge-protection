@@ -1,6 +1,8 @@
 package cloudflare
 
 import (
+	"fmt"
+
 	"github.com/pulumi/pulumi-cloudflare/sdk/v6/go/cloudflare"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -8,7 +10,7 @@ import (
 // configureSSLSettings configures SSL/TLS settings for the zone.
 func (e *EdgeProtection) configureSSLSettings(ctx *pulumi.Context, zone *cloudflare.Zone) (*cloudflare.ZoneSetting, error) {
 	// Configure zone wide TLS settings
-	return cloudflare.NewZoneSetting(ctx, e.newResourceName("ssl", "settings", 64), &cloudflare.ZoneSettingArgs{
+	zoneSetting, err := cloudflare.NewZoneSetting(ctx, e.newResourceName("ssl", "settings", 64), &cloudflare.ZoneSettingArgs{
 		ZoneId:    zone.ID(),
 		SettingId: pulumi.String("ssl"),
 		Value: pulumi.Map{
@@ -35,4 +37,8 @@ func (e *EdgeProtection) configureSSLSettings(ctx *pulumi.Context, zone *cloudfl
 			"universal_ssl": pulumi.String("on"),
 		},
 	}, pulumi.Parent(e))
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure SSL/TLS zone settings: %w", err)
+	}
+	return zoneSetting, nil
 }

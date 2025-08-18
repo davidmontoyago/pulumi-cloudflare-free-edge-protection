@@ -11,16 +11,18 @@ import (
 )
 
 const (
-	testCloudflareAPIToken = "test-cloudflare-api-token-123"
-	testDomain             = "myapp.path2prod.dev"
-	testBackendURL         = "backend-service-abc123-uc.a.run.app"
-	testFrontendURL        = "frontend-service-def456-uc.a.run.app"
+	testCloudflareAPIToken  = "test-cloudflare-api-token-123"
+	testDomain              = "myapp.path2prod.dev"
+	testBackendURL          = "backend-service-abc123-uc.a.run.app"
+	testFrontendURL         = "frontend-service-def456-uc.a.run.app"
+	testCloudflareAccountID = "test-cloudflare-account-id-123"
 )
 
 func TestLoadConfig_HappyPath(t *testing.T) {
 	// Set required environment variables
 	envVars := map[string]string{
 		"CLOUDFLARE_API_TOKEN":  testCloudflareAPIToken,
+		"CLOUDFLARE_ACCOUNT_ID": testCloudflareAccountID,
 		"DOMAIN":                testDomain,
 		"BACKEND_URL":           testBackendURL,
 		"FRONTEND_URL":          testFrontendURL,
@@ -81,10 +83,11 @@ func TestLoadConfig_HappyPath(t *testing.T) {
 func TestLoadConfig_WithDefaults(t *testing.T) {
 	// Set only required environment variables
 	envVars := map[string]string{
-		"CLOUDFLARE_API_TOKEN": testCloudflareAPIToken,
-		"DOMAIN":               testDomain,
-		"BACKEND_URL":          testBackendURL,
-		"FRONTEND_URL":         testFrontendURL,
+		"CLOUDFLARE_API_TOKEN":  testCloudflareAPIToken,
+		"CLOUDFLARE_ACCOUNT_ID": testCloudflareAccountID,
+		"DOMAIN":                testDomain,
+		"BACKEND_URL":           testBackendURL,
+		"FRONTEND_URL":          testFrontendURL,
 	}
 
 	// Set environment variables
@@ -136,38 +139,52 @@ func TestLoadConfig_MissingRequiredFields(t *testing.T) {
 		{
 			name: "missing cloudflare api token",
 			envVars: map[string]string{
-				"DOMAIN":       testDomain,
-				"BACKEND_URL":  testBackendURL,
-				"FRONTEND_URL": testFrontendURL,
+				"CLOUDFLARE_ACCOUNT_ID": testCloudflareAccountID,
+				"DOMAIN":                testDomain,
+				"BACKEND_URL":           testBackendURL,
+				"FRONTEND_URL":          testFrontendURL,
 			},
 			expectedErr: "CLOUDFLARE_API_TOKEN",
 		},
 		{
 			name: "missing domain",
 			envVars: map[string]string{
-				"CLOUDFLARE_API_TOKEN": testCloudflareAPIToken,
-				"BACKEND_URL":          testBackendURL,
-				"FRONTEND_URL":         testFrontendURL,
+				"CLOUDFLARE_API_TOKEN":  testCloudflareAPIToken,
+				"CLOUDFLARE_ACCOUNT_ID": testCloudflareAccountID,
+				"BACKEND_URL":           testBackendURL,
+				"FRONTEND_URL":          testFrontendURL,
 			},
 			expectedErr: "DOMAIN",
 		},
 		{
 			name: "missing backend url",
 			envVars: map[string]string{
-				"CLOUDFLARE_API_TOKEN": testCloudflareAPIToken,
-				"DOMAIN":               testDomain,
-				"FRONTEND_URL":         testFrontendURL,
+				"CLOUDFLARE_API_TOKEN":  testCloudflareAPIToken,
+				"CLOUDFLARE_ACCOUNT_ID": testCloudflareAccountID,
+				"DOMAIN":                testDomain,
+				"FRONTEND_URL":          testFrontendURL,
 			},
 			expectedErr: "BACKEND_URL",
 		},
 		{
 			name: "missing frontend url",
 			envVars: map[string]string{
+				"CLOUDFLARE_API_TOKEN":  testCloudflareAPIToken,
+				"CLOUDFLARE_ACCOUNT_ID": testCloudflareAccountID,
+				"DOMAIN":                testDomain,
+				"BACKEND_URL":           testBackendURL,
+			},
+			expectedErr: "FRONTEND_URL",
+		},
+		{
+			name: "missing cloudflare account id",
+			envVars: map[string]string{
 				"CLOUDFLARE_API_TOKEN": testCloudflareAPIToken,
 				"DOMAIN":               testDomain,
 				"BACKEND_URL":          testBackendURL,
+				"FRONTEND_URL":         testFrontendURL,
 			},
-			expectedErr: "FRONTEND_URL",
+			expectedErr: "CLOUDFLARE_ACCOUNT_ID",
 		},
 	}
 
@@ -197,10 +214,11 @@ func TestLoadConfig_MissingRequiredFields(t *testing.T) {
 func TestToEdgeProtectionArgs(t *testing.T) {
 	// Set required environment variables
 	envVars := map[string]string{
-		"CLOUDFLARE_API_TOKEN": testCloudflareAPIToken,
-		"DOMAIN":               testDomain,
-		"BACKEND_URL":          testBackendURL,
-		"FRONTEND_URL":         testFrontendURL,
+		"CLOUDFLARE_API_TOKEN":  testCloudflareAPIToken,
+		"CLOUDFLARE_ACCOUNT_ID": testCloudflareAccountID,
+		"DOMAIN":                testDomain,
+		"BACKEND_URL":           testBackendURL,
+		"FRONTEND_URL":          testFrontendURL,
 	}
 
 	// Set environment variables

@@ -13,6 +13,8 @@ type EdgeProtectionArgs struct {
 	BackendURL string
 	// Frontend URL of the Cloud Run service or other frontend (e.g., "frontend-service-def456-uc.a.run.app")
 	FrontendURL string
+	// Cloudflare Account ID. Required.
+	CloudflareAccountID string
 	// TODO link to docs
 	// Security level for Cloudflare protection (optional, defaults to "medium")
 	// Valid values: "off", "essentially_off", "low", "medium", "high", "under_attack"

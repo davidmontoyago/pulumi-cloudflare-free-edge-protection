@@ -14,6 +14,7 @@ import (
 // Config allows setting the cloudflare edge protection configuration via environment variables
 type Config struct {
 	CloudflareAPIToken  string `envconfig:"CLOUDFLARE_API_TOKEN" required:"true"`
+	CloudflareAccountID string `envconfig:"CLOUDFLARE_ACCOUNT_ID" required:"true"`
 	Domain              string `envconfig:"DOMAIN" required:"true"`
 	BackendURL          string `envconfig:"BACKEND_URL" required:"true"`
 	FrontendURL         string `envconfig:"FRONTEND_URL" required:"true"`

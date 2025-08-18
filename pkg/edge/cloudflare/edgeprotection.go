@@ -15,6 +15,7 @@ type EdgeProtection struct {
 	Domain              string
 	BackendURL          string
 	FrontendURL         string
+	CloudflareAccountID string
 	SecurityLevel       pulumi.StringOutput
 	CacheLevel          pulumi.StringOutput
 	BrowserCacheTTL     pulumi.IntOutput
@@ -63,6 +64,7 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		Domain:              args.Domain,
 		BackendURL:          args.BackendURL,
 		FrontendURL:         args.FrontendURL,
+		CloudflareAccountID: args.CloudflareAccountID,
 		SecurityLevel:       setDefaultString(args.SecurityLevel, "medium"),
 		CacheLevel:          setDefaultString(args.CacheLevel, "aggressive"),
 		BrowserCacheTTL:     setDefaultInt(args.BrowserCacheTTL, 14400), // 4 hours
@@ -94,19 +96,19 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 	}
 
 	err = ctx.RegisterResourceOutputs(edgeProtection, pulumi.Map{
-		"cloudflare_zone_id":                edgeProtection.zone.ID(),
-		"cloudflare_zone_name":              edgeProtection.zone.Name,
-		"cloudflare_zone_status":            edgeProtection.zone.Status,
-		"cloudflare_zone_name_servers":      edgeProtection.zone.NameServers,
-		"cloudflare_backend_dns_record_id":  edgeProtection.backendDNSRecord.ID(),
-		"cloudflare_frontend_dns_record_id": edgeProtection.frontendDNSRecord.ID(),
-		"cloudflare_root_dns_record_id":     edgeProtection.rootDNSRecord.ID(),
-		"cloudflare_security_filter_id":     edgeProtection.securityFilter.ID(),
-		"cloudflare_firewall_rule_id":       edgeProtection.securityFirewallRule.ID(),
-		"cloudflare_rate_limit_rule_id":     edgeProtection.rateLimitRule.ID(),
-		"cloudflare_cache_page_rule_id":     edgeProtection.cachePageRule.ID(),
-		"cloudflare_https_page_rule_id":     edgeProtection.httpsPageRule.ID(),
-		"cloudflare_security_page_rule_id":  edgeProtection.securityPageRule.ID(),
+		"cloudflare_zone_id":               edgeProtection.zone.ID(),
+		"cloudflare_zone_name":             edgeProtection.zone.Name,
+		"cloudflare_zone_status":           edgeProtection.zone.Status,
+		"cloudflare_zone_name_servers":     edgeProtection.zone.NameServers,
+		"cloudflare_backend_dns_record_id": edgeProtection.backendDNSRecord.ID(),
+		// "cloudflare_frontend_dns_record_id": edgeProtection.frontendDNSRecord.ID(),
+		// "cloudflare_root_dns_record_id":    edgeProtection.rootDNSRecord.ID(),
+		"cloudflare_security_filter_id":    edgeProtection.securityFilter.ID(),
+		"cloudflare_firewall_rule_id":      edgeProtection.securityFirewallRule.ID(),
+		"cloudflare_rate_limit_rule_id":    edgeProtection.rateLimitRule.ID(),
+		"cloudflare_cache_page_rule_id":    edgeProtection.cachePageRule.ID(),
+		"cloudflare_https_page_rule_id":    edgeProtection.httpsPageRule.ID(),
+		"cloudflare_security_page_rule_id": edgeProtection.securityPageRule.ID(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to register resource outputs: %w", err)
