@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	edge "github.com/davidmontoyago/pulumi-cloudflare-free-waf/pkg/edge/cloudflare"
+	edge "github.com/davidmontoyago/pulumi-cloudflare-free-edge-protection/pkg/cloudflare"
 )
 
 const (

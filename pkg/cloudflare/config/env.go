@@ -8,7 +8,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 
-	"github.com/davidmontoyago/pulumi-cloudflare-free-waf/pkg/edge/cloudflare"
+	"github.com/davidmontoyago/pulumi-cloudflare-free-edge-protection/pkg/cloudflare"
 )
 
 // Config allows setting the cloudflare edge protection configuration via environment variables

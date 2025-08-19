@@ -5,8 +5,8 @@ import (
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 
-	"github.com/davidmontoyago/pulumi-cloudflare-free-waf/pkg/edge/cloudflare"
-	"github.com/davidmontoyago/pulumi-cloudflare-free-waf/pkg/edge/cloudflare/config"
+	"github.com/davidmontoyago/pulumi-cloudflare-free-edge-protection/pkg/cloudflare"
+	"github.com/davidmontoyago/pulumi-cloudflare-free-edge-protection/pkg/cloudflare/config"
 )
 
 func main() {

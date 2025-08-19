@@ -1,4 +1,4 @@
-module github.com/davidmontoyago/pulumi-cloudflare-free-waf
+module github.com/davidmontoyago/pulumi-cloudflare-free-edge-protection
 
 go 1.24.5
 

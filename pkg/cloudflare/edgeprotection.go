@@ -93,7 +93,7 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 	}
 
 	// Deploy the infrastructure
-	err = edgeProtection.deploy(ctx, args)
+	err = edgeProtection.deploy(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to deploy edge protection: %w", err)
 	}
@@ -121,7 +121,7 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 }
 
 // deploy provisions all the resources for the Cloudflare edge protection.
-func (e *EdgeProtection) deploy(ctx *pulumi.Context, args *EdgeProtectionArgs) error {
+func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 	// 1. Create DNS Zone
 	zone, err := e.createZone(ctx)
 	if err != nil {

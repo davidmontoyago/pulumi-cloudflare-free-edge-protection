@@ -9,6 +9,7 @@ import (
 
 // createPageRules creates page rules for additional optimization.
 func (e *EdgeProtection) createPageRules(ctx *pulumi.Context, zone *cloudflare.Zone) error {
+	// TODO this might be 5 now. confirm
 	// Page Rules for additional optimization (Free tier allows 3 rules)
 
 	// 1. Cache everything on static assets

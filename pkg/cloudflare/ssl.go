@@ -14,13 +14,7 @@ func (e *EdgeProtection) configureSSLSettings(ctx *pulumi.Context, zone *cloudfl
 		ZoneId:    zone.ID(),
 		SettingId: pulumi.String("ssl"),
 		Value: pulumi.Map{
-			"ssl": e.SSLMode,
-			"always_use_https": e.AlwaysUseHTTPS.ApplyT(func(enabled bool) string {
-				if enabled {
-					return "on"
-				}
-				return "off"
-			}).(pulumi.StringOutput),
+			"ssl":             e.SSLMode,
 			"min_tls_version": e.MinTLSVersion,
 			"tls_13": e.TLS13Enabled.ApplyT(func(enabled bool) string {
 				if enabled {
@@ -28,13 +22,15 @@ func (e *EdgeProtection) configureSSLSettings(ctx *pulumi.Context, zone *cloudfl
 				}
 				return "off"
 			}).(pulumi.StringOutput),
-			"automatic_https_rewrites": e.AutoHTTPSRewrites.ApplyT(func(enabled bool) string {
-				if enabled {
-					return "on"
-				}
+			// TODO verify
+			"universal_ssl": pulumi.String("on"),
+			//See: https://www.reddit.com/r/googlecloud/comments/kvj2ss/comment/gy7k2my/
+			"always_use_https": e.AlwaysUseHTTPS.ApplyT(func(enabled bool) string {
 				return "off"
 			}).(pulumi.StringOutput),
-			"universal_ssl": pulumi.String("on"),
+			"automatic_https_rewrites": e.AutoHTTPSRewrites.ApplyT(func(enabled bool) string {
+				return "off"
+			}).(pulumi.StringOutput),
 		},
 	}, pulumi.Parent(e))
 	if err != nil {
