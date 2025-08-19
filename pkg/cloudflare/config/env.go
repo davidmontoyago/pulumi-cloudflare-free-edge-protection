@@ -70,8 +70,8 @@ func LoadConfig() (*Config, error) {
 func (c *Config) ToEdgeProtectionArgs() *cloudflare.EdgeProtectionArgs {
 	args := &cloudflare.EdgeProtectionArgs{
 		Domain:              c.Domain,
-		BackendURL:          c.BackendURL,
-		FrontendURL:         c.FrontendURL,
+		BackendURL:          pulumi.String(c.BackendURL),
+		FrontendURL:         pulumi.String(c.FrontendURL),
 		CloudflareAccountID: c.CloudflareAccountID,
 		SecurityLevel:       pulumi.String(c.SecurityLevel),
 		CacheLevel:          pulumi.String(c.CacheLevel),

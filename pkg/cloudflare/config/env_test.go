@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -243,8 +244,8 @@ func TestToEdgeProtectionArgs(t *testing.T) {
 
 	// Verify that all args are set correctly
 	assert.Equal(t, testDomain, args.Domain)
-	assert.Equal(t, testBackendURL, args.BackendURL)
-	assert.Equal(t, testFrontendURL, args.FrontendURL)
+	assert.Equal(t, pulumi.String(testBackendURL), args.BackendURL)
+	assert.Equal(t, pulumi.String(testFrontendURL), args.FrontendURL)
 	assert.NotNil(t, args.SecurityLevel)
 	assert.NotNil(t, args.CacheLevel)
 	assert.NotNil(t, args.BrowserCacheTTL)

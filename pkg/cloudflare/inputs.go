@@ -10,9 +10,9 @@ type EdgeProtectionArgs struct {
 	// Domain for which edge protection will be configured (e.g., "myapp.path2prod.dev")
 	Domain string
 	// Backend URL of the Cloud Run service or other backend (e.g., "backend-service-abc123-uc.a.run.app")
-	BackendURL string
+	BackendURL pulumi.StringInput
 	// Frontend URL of the Cloud Run service or other frontend (e.g., "frontend-service-def456-uc.a.run.app")
-	FrontendURL string
+	FrontendURL pulumi.StringInput
 	// Cloudflare Account ID. Required.
 	CloudflareAccountID string
 	// TODO link to docs

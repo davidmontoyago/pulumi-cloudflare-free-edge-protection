@@ -34,7 +34,7 @@ func (e *EdgeProtection) createDNSRecords(ctx *pulumi.Context, zone *cloudflare.
 	backendRecord, err := cloudflare.NewDnsRecord(ctx, e.newResourceName("backend", "dns", 64), &cloudflare.DnsRecordArgs{
 		ZoneId:  zone.ID(),
 		Name:    pulumi.Sprintf("api.%s", e.Domain),
-		Content: pulumi.String(e.BackendURL),
+		Content: e.BackendURL,
 		Type:    pulumi.String("CNAME"),
 		Ttl:     pulumi.Float64(1), // Automatic TTL when proxied
 		Proxied: pulumi.Bool(true), // Enable Cloudflare proxy for CDN + DDoS protection. A partial setup with CNAMEs wouldn't be enough.
@@ -48,7 +48,7 @@ func (e *EdgeProtection) createDNSRecords(ctx *pulumi.Context, zone *cloudflare.
 	frontendRecord, err := cloudflare.NewDnsRecord(ctx, e.newResourceName("frontend", "dns", 64), &cloudflare.DnsRecordArgs{
 		ZoneId:  zone.ID(),
 		Name:    pulumi.String(e.Domain),
-		Content: pulumi.String(e.FrontendURL),
+		Content: e.FrontendURL,
 		Type:    pulumi.String("CNAME"),
 		Ttl:     pulumi.Float64(1), // Automatic TTL when proxied
 		Proxied: pulumi.Bool(true), // Enables CDN and DDoS protection

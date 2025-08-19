@@ -13,8 +13,8 @@ type EdgeProtection struct {
 	pulumi.ResourceState
 
 	Domain              string
-	BackendURL          string
-	FrontendURL         string
+	BackendURL          pulumi.StringOutput
+	FrontendURL         pulumi.StringOutput
 	CloudflareAccountID string
 	SecurityLevel       pulumi.StringOutput
 	CacheLevel          pulumi.StringOutput
@@ -53,10 +53,10 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 	if args.Domain == "" {
 		return nil, fmt.Errorf("domain is required")
 	}
-	if args.BackendURL == "" {
+	if args.BackendURL == nil {
 		return nil, fmt.Errorf("backend URL is required")
 	}
-	if args.FrontendURL == "" {
+	if args.FrontendURL == nil {
 		return nil, fmt.Errorf("frontend URL is required")
 	}
 	if args.CloudflareAccountID == "" {
@@ -65,8 +65,8 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 
 	edgeProtection := &EdgeProtection{
 		Domain:              args.Domain,
-		BackendURL:          args.BackendURL,
-		FrontendURL:         args.FrontendURL,
+		BackendURL:          args.BackendURL.ToStringOutput(),
+		FrontendURL:         args.FrontendURL.ToStringOutput(),
 		CloudflareAccountID: args.CloudflareAccountID,
 		SecurityLevel:       setDefaultString(args.SecurityLevel, "medium"),
 		CacheLevel:          setDefaultString(args.CacheLevel, "aggressive"),

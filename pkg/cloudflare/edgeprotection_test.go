@@ -99,8 +99,8 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		args := &edge.EdgeProtectionArgs{
 			Domain:              testDomain,
-			BackendURL:          testBackendURL,
-			FrontendURL:         testFrontendURL,
+			BackendURL:          pulumi.String(testBackendURL),
+			FrontendURL:         pulumi.String(testFrontendURL),
 			CloudflareAccountID: testCloudflareAccountID,
 			SecurityLevel:       pulumi.String("medium"),
 			CacheLevel:          pulumi.String("aggressive"),
@@ -127,8 +127,23 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 
 		// Verify basic properties
 		assert.Equal(t, testDomain, edgeProtection.Domain)
-		assert.Equal(t, testBackendURL, edgeProtection.BackendURL)
-		assert.Equal(t, testFrontendURL, edgeProtection.FrontendURL)
+
+		backendURLCh := make(chan string, 1)
+		defer close(backendURLCh)
+		edgeProtection.BackendURL.ApplyT(func(url string) error {
+			backendURLCh <- url
+			return nil
+		})
+		assert.Equal(t, testBackendURL, <-backendURLCh)
+
+		frontendURLCh := make(chan string, 1)
+		defer close(frontendURLCh)
+		edgeProtection.FrontendURL.ApplyT(func(url string) error {
+			frontendURLCh <- url
+			return nil
+		})
+		assert.Equal(t, testFrontendURL, <-frontendURLCh)
+
 		assert.Equal(t, testCloudflareAccountID, edgeProtection.CloudflareAccountID)
 
 		// Verify security level using async pattern
@@ -282,8 +297,8 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		args := &edge.EdgeProtectionArgs{
 			Domain:              testDomain,
-			BackendURL:          testBackendURL,
-			FrontendURL:         testFrontendURL,
+			BackendURL:          pulumi.String(testBackendURL),
+			FrontendURL:         pulumi.String(testFrontendURL),
 			CloudflareAccountID: testCloudflareAccountID,
 			// Using defaults for other fields
 		}
@@ -423,8 +438,8 @@ func TestNewEdgeProtection_RequiredFields(t *testing.T) {
 		{
 			name: "missing domain",
 			args: &edge.EdgeProtectionArgs{
-				BackendURL:          testBackendURL,
-				FrontendURL:         testFrontendURL,
+				BackendURL:          pulumi.String(testBackendURL),
+				FrontendURL:         pulumi.String(testFrontendURL),
 				CloudflareAccountID: testCloudflareAccountID,
 			},
 			expectedErr: "domain is required",
@@ -433,7 +448,7 @@ func TestNewEdgeProtection_RequiredFields(t *testing.T) {
 			name: "missing backend URL",
 			args: &edge.EdgeProtectionArgs{
 				Domain:              testDomain,
-				FrontendURL:         testFrontendURL,
+				FrontendURL:         pulumi.String(testFrontendURL),
 				CloudflareAccountID: testCloudflareAccountID,
 			},
 			expectedErr: "backend URL is required",
@@ -442,7 +457,7 @@ func TestNewEdgeProtection_RequiredFields(t *testing.T) {
 			name: "missing frontend URL",
 			args: &edge.EdgeProtectionArgs{
 				Domain:              testDomain,
-				BackendURL:          testBackendURL,
+				BackendURL:          pulumi.String(testBackendURL),
 				CloudflareAccountID: testCloudflareAccountID,
 			},
 			expectedErr: "frontend URL is required",
@@ -451,8 +466,8 @@ func TestNewEdgeProtection_RequiredFields(t *testing.T) {
 			name: "missing cloudflare account ID",
 			args: &edge.EdgeProtectionArgs{
 				Domain:      testDomain,
-				BackendURL:  testBackendURL,
-				FrontendURL: testFrontendURL,
+				BackendURL:  pulumi.String(testBackendURL),
+				FrontendURL: pulumi.String(testFrontendURL),
 			},
 			expectedErr: "cloudflare account ID is required",
 		},
