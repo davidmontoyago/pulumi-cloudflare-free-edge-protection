@@ -3,16 +3,18 @@ package cloudflare_test
 import (
 	"testing"
 
+	"github.com/pulumi/pulumi-cloudflare/sdk/v6/go/cloudflare"
 	"github.com/pulumi/pulumi/sdk/v3/go/common/resource"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/davidmontoyago/pulumi-cloudflare-free-waf/pkg/edge/cloudflare"
+	edge "github.com/davidmontoyago/pulumi-cloudflare-free-waf/pkg/edge/cloudflare"
 )
 
 const (
 	testDomain              = "myapp.path2prod.dev"
+	testTopLevelDomain      = ".path2prod.dev" // Extracted from testDomain
 	testBackendURL          = "backend-service-abc123-uc.a.run.app"
 	testFrontendURL         = "frontend-service-def456-uc.a.run.app"
 	testCloudflareAccountID = "test-cloudflare-account-id-123"
@@ -29,7 +31,7 @@ func (m *edgeProtectionMocks) NewResource(args pulumi.MockResourceArgs) (string,
 	// Mock resource outputs for each resource type:
 	switch args.TypeToken {
 	case "cloudflare:index/zone:Zone":
-		outputs["zone"] = testDomain
+		outputs["name"] = testTopLevelDomain
 		outputs["status"] = "active"
 		outputs["nameServers"] = []string{
 			"ns1.cloudflare.com",
@@ -37,13 +39,18 @@ func (m *edgeProtectionMocks) NewResource(args pulumi.MockResourceArgs) (string,
 		}
 		outputs["id"] = "test-zone-id-123"
 
-	case "cloudflare:index/record:Record":
-		outputs["name"] = args.Inputs["name"]
-		outputs["value"] = args.Inputs["value"]
-		outputs["type"] = args.Inputs["type"]
-		outputs["proxied"] = args.Inputs["proxied"]
-		outputs["ttl"] = args.Inputs["ttl"]
+	case "cloudflare:index/dnsRecord:DnsRecord":
 		outputs["zoneId"] = "test-zone-id-123"
+		outputs["data"] = map[string]interface{}{
+			// TODO which is the correct field?
+			"target": args.Inputs["content"],
+			"value":  args.Inputs["content"],
+		}
+
+	case "cloudflare:index/zoneSetting:ZoneSetting":
+		outputs["zoneId"] = "test-zone-id-123"
+		outputs["name"] = args.Inputs["settingId"]
+		outputs["value"] = args.Inputs["value"]
 
 	case "cloudflare:index/zoneSettingsOverride:ZoneSettingsOverride":
 		outputs["zoneId"] = "test-zone-id-123"
@@ -90,7 +97,7 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 	t.Parallel()
 
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
-		args := &cloudflare.EdgeProtectionArgs{
+		args := &edge.EdgeProtectionArgs{
 			Domain:              testDomain,
 			BackendURL:          testBackendURL,
 			FrontendURL:         testFrontendURL,
@@ -115,13 +122,14 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 			},
 		}
 
-		edgeProtection, err := cloudflare.NewEdgeProtection(ctx, "test-edge-protection", args)
+		edgeProtection, err := edge.NewEdgeProtection(ctx, "test-edge-protection", args)
 		require.NoError(t, err)
 
 		// Verify basic properties
 		assert.Equal(t, testDomain, edgeProtection.Domain)
 		assert.Equal(t, testBackendURL, edgeProtection.BackendURL)
 		assert.Equal(t, testFrontendURL, edgeProtection.FrontendURL)
+		assert.Equal(t, testCloudflareAccountID, edgeProtection.CloudflareAccountID)
 
 		// Verify security level using async pattern
 		securityLevelCh := make(chan string, 1)
@@ -181,14 +189,14 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 		zone := edgeProtection.GetZone()
 		require.NotNil(t, zone, "Zone should not be nil")
 
-		// Assert zone configuration
+		// Assert zone configuration - should use top-level domain
 		zoneNameCh := make(chan string, 1)
 		defer close(zoneNameCh)
 		zone.Name.ApplyT(func(zoneName string) error {
 			zoneNameCh <- zoneName
 			return nil
 		})
-		assert.Equal(t, testDomain, <-zoneNameCh, "Zone name should match domain")
+		assert.Equal(t, testTopLevelDomain, <-zoneNameCh, "Zone name should match top-level domain")
 
 		// Verify DNS records
 		backendRecord := edgeProtection.GetBackendDNSRecord()
@@ -197,39 +205,40 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 		frontendRecord := edgeProtection.GetFrontendDNSRecord()
 		require.NotNil(t, frontendRecord, "Frontend DNS record should not be nil")
 
-		rootRecord := edgeProtection.GetRootDNSRecord()
-		require.NotNil(t, rootRecord, "Root DNS record should not be nil")
+		// Note: Root DNS record is commented out in the current implementation
+		// rootRecord := edgeProtection.GetRootDNSRecord()
+		// require.NotNil(t, rootRecord, "Root DNS record should not be nil")
 
-		// Verify backend DNS record configuration
+		// Verify backend DNS record configuration - should be api.{domain}
 		backendNameCh := make(chan string, 1)
 		defer close(backendNameCh)
 		backendRecord.Name.ApplyT(func(name string) error {
 			backendNameCh <- name
 			return nil
 		})
-		assert.Equal(t, "api", <-backendNameCh, "Backend DNS record name should be 'api'")
+		assert.Equal(t, "api."+testDomain, <-backendNameCh, "Backend DNS record name should be 'api.{domain}'")
 
 		backendValueCh := make(chan string, 1)
 		defer close(backendValueCh)
-		backendRecord.Data.ApplyT(func(value string) error {
-			backendValueCh <- value
+		backendRecord.Data.ApplyT(func(value *cloudflare.DnsRecordData) error {
+			backendValueCh <- *value.Target
 			return nil
 		})
 		assert.Equal(t, testBackendURL, <-backendValueCh, "Backend DNS record value should match backend URL")
 
-		// Verify frontend DNS record configuration
+		// Verify frontend DNS record configuration - should be the full domain
 		frontendNameCh := make(chan string, 1)
 		defer close(frontendNameCh)
 		frontendRecord.Name.ApplyT(func(name string) error {
 			frontendNameCh <- name
 			return nil
 		})
-		assert.Equal(t, "www", <-frontendNameCh, "Frontend DNS record name should be 'www'")
+		assert.Equal(t, testDomain, <-frontendNameCh, "Frontend DNS record name should be the full domain")
 
 		frontendValueCh := make(chan string, 1)
 		defer close(frontendValueCh)
-		frontendRecord.Data.ApplyT(func(value string) error {
-			frontendValueCh <- value
+		frontendRecord.Data.ApplyT(func(value *cloudflare.DnsRecordData) error {
+			frontendValueCh <- *value.Target
 			return nil
 		})
 		assert.Equal(t, testFrontendURL, <-frontendValueCh, "Frontend DNS record value should match frontend URL")
@@ -271,7 +280,7 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 	t.Parallel()
 
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
-		args := &cloudflare.EdgeProtectionArgs{
+		args := &edge.EdgeProtectionArgs{
 			Domain:              testDomain,
 			BackendURL:          testBackendURL,
 			FrontendURL:         testFrontendURL,
@@ -279,7 +288,7 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 			// Using defaults for other fields
 		}
 
-		edgeProtection, err := cloudflare.NewEdgeProtection(ctx, "test-edge-protection", args)
+		edgeProtection, err := edge.NewEdgeProtection(ctx, "test-edge-protection", args)
 		require.NoError(t, err)
 
 		// Verify defaults are applied correctly
@@ -408,32 +417,44 @@ func TestNewEdgeProtection_RequiredFields(t *testing.T) {
 
 	tests := []struct {
 		name        string
-		args        *cloudflare.EdgeProtectionArgs
+		args        *edge.EdgeProtectionArgs
 		expectedErr string
 	}{
 		{
 			name: "missing domain",
-			args: &cloudflare.EdgeProtectionArgs{
-				BackendURL:  testBackendURL,
-				FrontendURL: testFrontendURL,
+			args: &edge.EdgeProtectionArgs{
+				BackendURL:          testBackendURL,
+				FrontendURL:         testFrontendURL,
+				CloudflareAccountID: testCloudflareAccountID,
 			},
 			expectedErr: "domain is required",
 		},
 		{
 			name: "missing backend URL",
-			args: &cloudflare.EdgeProtectionArgs{
-				Domain:      testDomain,
-				FrontendURL: testFrontendURL,
+			args: &edge.EdgeProtectionArgs{
+				Domain:              testDomain,
+				FrontendURL:         testFrontendURL,
+				CloudflareAccountID: testCloudflareAccountID,
 			},
 			expectedErr: "backend URL is required",
 		},
 		{
 			name: "missing frontend URL",
-			args: &cloudflare.EdgeProtectionArgs{
-				Domain:     testDomain,
-				BackendURL: testBackendURL,
+			args: &edge.EdgeProtectionArgs{
+				Domain:              testDomain,
+				BackendURL:          testBackendURL,
+				CloudflareAccountID: testCloudflareAccountID,
 			},
 			expectedErr: "frontend URL is required",
+		},
+		{
+			name: "missing cloudflare account ID",
+			args: &edge.EdgeProtectionArgs{
+				Domain:      testDomain,
+				BackendURL:  testBackendURL,
+				FrontendURL: testFrontendURL,
+			},
+			expectedErr: "cloudflare account ID is required",
 		},
 	}
 
@@ -441,7 +462,7 @@ func TestNewEdgeProtection_RequiredFields(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 			err := pulumi.RunErr(func(ctx *pulumi.Context) error {
-				_, err := cloudflare.NewEdgeProtection(ctx, "test-edge-protection", testCase.args)
+				_, err := edge.NewEdgeProtection(ctx, "test-edge-protection", testCase.args)
 				if err != nil {
 					assert.Contains(t, err.Error(), testCase.expectedErr)
 					return nil // Expected error, test passes

@@ -72,6 +72,7 @@ func (c *Config) ToEdgeProtectionArgs() *cloudflare.EdgeProtectionArgs {
 		Domain:              c.Domain,
 		BackendURL:          c.BackendURL,
 		FrontendURL:         c.FrontendURL,
+		CloudflareAccountID: c.CloudflareAccountID,
 		SecurityLevel:       pulumi.String(c.SecurityLevel),
 		CacheLevel:          pulumi.String(c.CacheLevel),
 		BrowserCacheTTL:     pulumi.Int(c.BrowserCacheTTL),

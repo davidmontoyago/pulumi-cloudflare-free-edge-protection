@@ -59,6 +59,9 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 	if args.FrontendURL == "" {
 		return nil, fmt.Errorf("frontend URL is required")
 	}
+	if args.CloudflareAccountID == "" {
+		return nil, fmt.Errorf("cloudflare account ID is required")
+	}
 
 	edgeProtection := &EdgeProtection{
 		Domain:              args.Domain,
@@ -96,12 +99,12 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 	}
 
 	err = ctx.RegisterResourceOutputs(edgeProtection, pulumi.Map{
-		"cloudflare_zone_id":               edgeProtection.zone.ID(),
-		"cloudflare_zone_name":             edgeProtection.zone.Name,
-		"cloudflare_zone_status":           edgeProtection.zone.Status,
-		"cloudflare_zone_name_servers":     edgeProtection.zone.NameServers,
-		"cloudflare_backend_dns_record_id": edgeProtection.backendDNSRecord.ID(),
-		// "cloudflare_frontend_dns_record_id": edgeProtection.frontendDNSRecord.ID(),
+		"cloudflare_zone_id":                edgeProtection.zone.ID(),
+		"cloudflare_zone_name":              edgeProtection.zone.Name,
+		"cloudflare_zone_status":            edgeProtection.zone.Status,
+		"cloudflare_zone_name_servers":      edgeProtection.zone.NameServers,
+		"cloudflare_backend_dns_record_id":  edgeProtection.backendDNSRecord.ID(),
+		"cloudflare_frontend_dns_record_id": edgeProtection.frontendDNSRecord.ID(),
 		// "cloudflare_root_dns_record_id":    edgeProtection.rootDNSRecord.ID(),
 		"cloudflare_security_filter_id":    edgeProtection.securityFilter.ID(),
 		"cloudflare_firewall_rule_id":      edgeProtection.securityFirewallRule.ID(),
