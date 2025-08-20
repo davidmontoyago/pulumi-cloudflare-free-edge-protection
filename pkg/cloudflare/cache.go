@@ -33,11 +33,11 @@ func (e *EdgeProtection) createCacheRules(ctx *pulumi.Context, zone *cloudflare.
 				ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
 					Cache: pulumi.Bool(true),
 					BrowserTtl: &cloudflare.RulesetRuleActionParametersBrowserTtlArgs{
-						Mode:    pulumi.String("override*origin"),
+						Mode:    pulumi.String("override_origin"),
 						Default: e.BrowserCacheTTL,
 					},
 					EdgeTtl: &cloudflare.RulesetRuleActionParametersEdgeTtlArgs{
-						Mode:    pulumi.String("override*origin"),
+						Mode:    pulumi.String("override_origin"),
 						Default: e.EdgeCacheTTLSeconds,
 					},
 					CacheKey: &cloudflare.RulesetRuleActionParametersCacheKeyArgs{
@@ -64,11 +64,11 @@ func (e *EdgeProtection) createCacheRules(ctx *pulumi.Context, zone *cloudflare.
 					Cache: pulumi.Bool(true),
 					// TODO make me configurable
 					BrowserTtl: &cloudflare.RulesetRuleActionParametersBrowserTtlArgs{
-						Mode:    pulumi.String("override*origin"),
+						Mode:    pulumi.String("override_origin"),
 						Default: pulumi.Int(1800), // 30 minutes for browser
 					},
 					EdgeTtl: &cloudflare.RulesetRuleActionParametersEdgeTtlArgs{
-						Mode:    pulumi.String("override*origin"),
+						Mode:    pulumi.String("override_origin"),
 						Default: pulumi.Int(7200), // 2 hours for HTML
 					},
 					CacheKey: &cloudflare.RulesetRuleActionParametersCacheKeyArgs{
@@ -97,7 +97,7 @@ func (e *EdgeProtection) createCacheRules(ctx *pulumi.Context, zone *cloudflare.
 						Mode: pulumi.String("bypass"),
 					},
 					EdgeTtl: &cloudflare.RulesetRuleActionParametersEdgeTtlArgs{
-						Mode: pulumi.String("bypass"),
+						Mode: pulumi.String("bypass_by_default"),
 					},
 				},
 				Enabled: pulumi.Bool(true),
