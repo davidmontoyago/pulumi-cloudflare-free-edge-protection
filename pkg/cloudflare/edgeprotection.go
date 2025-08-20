@@ -3,7 +3,6 @@ package cloudflare
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/pulumi/pulumi-cloudflare/sdk/v6/go/cloudflare"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -49,6 +48,7 @@ type EdgeProtection struct {
 	cacheRuleset      *cloudflare.Ruleset
 	redirectRuleset   *cloudflare.Ruleset
 	configRuleset     *cloudflare.Ruleset
+	rulesCount        pulumi.IntOutput
 }
 
 // NewEdgeProtection creates a new EdgeProtection instance with the provided configuration.
@@ -117,6 +117,7 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		"cloudflare_cache_ruleset_id":       edgeProtection.cacheRuleset.ID(),
 		"cloudflare_redirect_ruleset_id":    edgeProtection.redirectRuleset.ID(),
 		"cloudflare_config_ruleset_id":      edgeProtection.configRuleset.ID(),
+		"cloudflare_ruleset_rules_count":    edgeProtection.rulesCount,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to register resource outputs: %w", err)
@@ -185,6 +186,22 @@ func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 	e.redirectRuleset = redirectRuleset
 	e.configRuleset = configRuleset
 
+	// Count total number of rules
+	pulumi.All(
+		cacheRuleset.Rules,
+		redirectRuleset.Rules,
+		configRuleset.Rules,
+		wafManagedRuleset.Rules,
+		wafCustomRuleset.Rules,
+		ddosL4Ruleset.Rules,
+		ddosL7Ruleset.Rules,
+		rateLimitRuleset.Rules,
+	).ApplyT(func(rules []interface{}) error {
+		allRules := flattenRulesetRules(rules)
+		e.rulesCount = pulumi.Int(len(allRules)).ToIntOutput()
+		return nil
+	})
+
 	return nil
 }
 
@@ -218,4 +235,39 @@ func (e *EdgeProtection) GetZoneSettings() *cloudflare.ZoneSetting {
 // GetRateLimitRuleset returns the rate limit ruleset resource.
 func (e *EdgeProtection) GetRateLimitRuleset() *cloudflare.Ruleset {
 	return e.rateLimitRuleset
+}
+
+// GetDDoSL4Ruleset returns the DDoS L4 protection ruleset resource.
+func (e *EdgeProtection) GetDDoSL4Ruleset() *cloudflare.Ruleset {
+	return e.ddosL4Ruleset
+}
+
+// GetDDoSL7Ruleset returns the DDoS L7 protection ruleset resource.
+func (e *EdgeProtection) GetDDoSL7Ruleset() *cloudflare.Ruleset {
+	return e.ddosL7Ruleset
+}
+
+// GetWAFManagedRuleset returns the WAF managed ruleset resource.
+func (e *EdgeProtection) GetWAFManagedRuleset() *cloudflare.Ruleset {
+	return e.wafManagedRuleset
+}
+
+// GetWAFCustomRuleset returns the WAF custom ruleset resource.
+func (e *EdgeProtection) GetWAFCustomRuleset() *cloudflare.Ruleset {
+	return e.wafCustomRuleset
+}
+
+// GetCacheRuleset returns the cache optimization ruleset resource.
+func (e *EdgeProtection) GetCacheRuleset() *cloudflare.Ruleset {
+	return e.cacheRuleset
+}
+
+// GetRedirectRuleset returns the redirect ruleset resource.
+func (e *EdgeProtection) GetRedirectRuleset() *cloudflare.Ruleset {
+	return e.redirectRuleset
+}
+
+// GetConfigurationRuleset returns the configuration ruleset resource.
+func (e *EdgeProtection) GetConfigurationRuleset() *cloudflare.Ruleset {
+	return e.configRuleset
 }

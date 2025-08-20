@@ -1,6 +1,7 @@
 package cloudflare
 
 import (
+	"github.com/pulumi/pulumi-cloudflare/sdk/v6/go/cloudflare"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -24,4 +25,13 @@ func setDefaultBool(input pulumi.BoolInput, defaultValue bool) pulumi.BoolOutput
 		return pulumi.Bool(defaultValue).ToBoolOutput()
 	}
 	return input.ToBoolOutput()
+}
+
+func flattenRulesetRules(rules []interface{}) []cloudflare.RulesetRule {
+	var allRules []cloudflare.RulesetRule
+	for _, item := range rules {
+		rules := item.([]cloudflare.RulesetRule)
+		allRules = append(allRules, rules...)
+	}
+	return allRules
 }
