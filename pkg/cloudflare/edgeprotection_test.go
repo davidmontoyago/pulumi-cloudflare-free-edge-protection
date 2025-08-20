@@ -105,7 +105,7 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 			SecurityLevel:       pulumi.String("medium"),
 			CacheLevel:          pulumi.String("aggressive"),
 			BrowserCacheTTL:     pulumi.Int(14400),
-			EdgeCacheTTL:        pulumi.Int(2592000),
+			EdgeCacheTTLSeconds: pulumi.Int(2419200),
 			RateLimitThreshold:  pulumi.Int(60),
 			RateLimitPeriod:     pulumi.Int(60),
 			RateLimitTimeout:    pulumi.Int(600),
@@ -176,11 +176,11 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 		// Verify edge cache TTL
 		edgeCacheTTLCh := make(chan int, 1)
 		defer close(edgeCacheTTLCh)
-		edgeProtection.EdgeCacheTTL.ApplyT(func(ttl int) error {
+		edgeProtection.EdgeCacheTTLSeconds.ApplyT(func(ttl int) error {
 			edgeCacheTTLCh <- ttl
 			return nil
 		})
-		assert.Equal(t, 2592000, <-edgeCacheTTLCh, "Edge cache TTL should match")
+		assert.Equal(t, 2419200, <-edgeCacheTTLCh, "Edge cache TTL should match")
 
 		// Verify rate limit settings
 		rateLimitThresholdCh := make(chan int, 1)
@@ -333,11 +333,11 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 
 		edgeCacheTTLCh := make(chan int, 1)
 		defer close(edgeCacheTTLCh)
-		edgeProtection.EdgeCacheTTL.ApplyT(func(ttl int) error {
+		edgeProtection.EdgeCacheTTLSeconds.ApplyT(func(ttl int) error {
 			edgeCacheTTLCh <- ttl
 			return nil
 		})
-		assert.Equal(t, 2592000, <-edgeCacheTTLCh, "Edge cache TTL should default to 2592000")
+		assert.Equal(t, 2419200, <-edgeCacheTTLCh, "Edge cache TTL should default to 2419200")
 
 		rateLimitThresholdCh := make(chan int, 1)
 		defer close(rateLimitThresholdCh)

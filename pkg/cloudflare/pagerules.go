@@ -20,7 +20,7 @@ func (e *EdgeProtection) createPageRules(ctx *pulumi.Context, zone *cloudflare.Z
 		Status:   pulumi.String("active"),
 		Actions: &cloudflare.PageRuleActionsArgs{
 			CacheLevel:      pulumi.String("cache_everything"),
-			EdgeCacheTtl:    e.EdgeCacheTTL,
+			EdgeCacheTtl:    e.EdgeCacheTTLSeconds,
 			BrowserCacheTtl: e.BrowserCacheTTL,
 		},
 	}, pulumi.Parent(e))

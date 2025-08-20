@@ -21,7 +21,7 @@ type Config struct {
 	SecurityLevel       string `envconfig:"SECURITY_LEVEL" default:"medium"`
 	CacheLevel          string `envconfig:"CACHE_LEVEL" default:"aggressive"`
 	BrowserCacheTTL     int    `envconfig:"BROWSER_CACHE_TTL" default:"14400"`
-	EdgeCacheTTL        int    `envconfig:"EDGE_CACHE_TTL" default:"2592000"`
+	EdgeCacheTTLSeconds int    `envconfig:"EDGE_CACHE_TTL_SECONDS" default:"2419200"`
 	RateLimitThreshold  int    `envconfig:"RATE_LIMIT_THRESHOLD" default:"60"`
 	RateLimitPeriod     int    `envconfig:"RATE_LIMIT_PERIOD" default:"60"`
 	RateLimitTimeout    int    `envconfig:"RATE_LIMIT_TIMEOUT" default:"600"`
@@ -51,7 +51,7 @@ func LoadConfig() (*Config, error) {
 	log.Printf("  Security Level: %s", config.SecurityLevel)
 	log.Printf("  Cache Level: %s", config.CacheLevel)
 	log.Printf("  Browser Cache TTL: %d seconds", config.BrowserCacheTTL)
-	log.Printf("  Edge Cache TTL: %d seconds", config.EdgeCacheTTL)
+	log.Printf("  Edge Cache TTL: %d seconds", config.EdgeCacheTTLSeconds)
 	log.Printf("  Rate Limit Threshold: %d requests", config.RateLimitThreshold)
 	log.Printf("  Rate Limit Period: %d seconds", config.RateLimitPeriod)
 	log.Printf("  Rate Limit Timeout: %d seconds", config.RateLimitTimeout)
@@ -76,7 +76,7 @@ func (c *Config) ToEdgeProtectionArgs() *cloudflare.EdgeProtectionArgs {
 		SecurityLevel:       pulumi.String(c.SecurityLevel),
 		CacheLevel:          pulumi.String(c.CacheLevel),
 		BrowserCacheTTL:     pulumi.Int(c.BrowserCacheTTL),
-		EdgeCacheTTL:        pulumi.Int(c.EdgeCacheTTL),
+		EdgeCacheTTLSeconds: pulumi.Int(c.EdgeCacheTTLSeconds),
 		RateLimitThreshold:  pulumi.Int(c.RateLimitThreshold),
 		RateLimitPeriod:     pulumi.Int(c.RateLimitPeriod),
 		RateLimitTimeout:    pulumi.Int(c.RateLimitTimeout),

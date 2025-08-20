@@ -24,8 +24,8 @@ type EdgeProtectionArgs struct {
 	CacheLevel pulumi.StringInput
 	// Browser cache TTL in seconds (optional, defaults to 14400 = 4 hours)
 	BrowserCacheTTL pulumi.IntInput
-	// Edge cache TTL in seconds for static assets (optional, defaults to 2592000 = 30 days)
-	EdgeCacheTTL pulumi.IntInput
+	// Edge cache TTL in seconds for static assets (optional, defaults to 2419200 = 28 days)
+	EdgeCacheTTLSeconds pulumi.IntInput
 	// Rate limit threshold - number of requests (optional, defaults to 60)
 	RateLimitThreshold pulumi.IntInput
 	// Rate limit period in seconds (optional, defaults to 60)
