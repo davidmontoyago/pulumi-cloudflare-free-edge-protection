@@ -10,6 +10,7 @@ import (
 // createRateLimitRule creates rate limiting rules for DDoS protection.
 func (e *EdgeProtection) createRateLimitRule(ctx *pulumi.Context, zone *cloudflare.Zone) (*cloudflare.RateLimit, error) {
 	// Rate limiting for DDoS protection (Free tier allows 1 rule)
+
 	rateLimit, err := cloudflare.NewRateLimit(ctx, e.newResourceName("ddos", "protection", 64), &cloudflare.RateLimitArgs{
 		ZoneId: zone.ID(),
 		Threshold: e.RateLimitThreshold.ApplyT(func(v int) float64 {
@@ -43,5 +44,6 @@ func (e *EdgeProtection) createRateLimitRule(ctx *pulumi.Context, zone *cloudfla
 	if err != nil {
 		return nil, fmt.Errorf("failed to create rate limit rule for DDoS protection: %w", err)
 	}
+
 	return rateLimit, nil
 }

@@ -9,8 +9,9 @@ import (
 
 // createPageRules creates page rules for additional optimization.
 func (e *EdgeProtection) createPageRules(ctx *pulumi.Context, zone *cloudflare.Zone) error {
-	// TODO this might be 5 now. confirm
-	// Page Rules for additional optimization (Free tier allows 3 rules)
+	// Page Rules for additional optimization.
+	// We get 3 of these under the free tier. These are legacy. Cloudflare Rules should
+	// be favored, which includes 70 under the free tier.
 
 	// 1. Cache everything on static assets
 	cachePageRule, err := cloudflare.NewPageRule(ctx, e.newResourceName("cache", "static-assets", 64), &cloudflare.PageRuleArgs{

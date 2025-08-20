@@ -143,7 +143,7 @@ func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 	e.zoneSettings = zoneSettings
 
 	// 4. Create security filters and firewall rules
-	err = e.createSecurityRules(ctx, zone)
+	err = e.createFirewallRules(ctx, zone)
 	if err != nil {
 		return fmt.Errorf("failed to create security rules: %w", err)
 	}

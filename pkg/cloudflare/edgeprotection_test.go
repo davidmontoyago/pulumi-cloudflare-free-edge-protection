@@ -269,6 +269,15 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 		securityFirewallRule := edgeProtection.GetSecurityFirewallRule()
 		require.NotNil(t, securityFirewallRule, "Security firewall rule should not be nil")
 
+		// Verify firewall rule action is set to "ban"
+		firewallActionCh := make(chan string, 1)
+		defer close(firewallActionCh)
+		securityFirewallRule.Action.ApplyT(func(action cloudflare.FirewallRuleAction) error {
+			firewallActionCh <- *action.Mode
+			return nil
+		})
+		assert.Equal(t, "ban", <-firewallActionCh, "Firewall rule action should be set to 'ban'")
+
 		// Verify rate limit rule
 		rateLimitRule := edgeProtection.GetRateLimitRule()
 		require.NotNil(t, rateLimitRule, "Rate limit rule should not be nil")
