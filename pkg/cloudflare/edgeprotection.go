@@ -42,7 +42,7 @@ type EdgeProtection struct {
 	zoneSettings         *cloudflare.ZoneSetting
 	securityFilter       *cloudflare.Filter
 	securityFirewallRule *cloudflare.FirewallRule
-	rateLimitRule        *cloudflare.RateLimit
+	rateLimitRuleset     *cloudflare.Ruleset
 	cachePageRule        *cloudflare.PageRule
 	httpsPageRule        *cloudflare.PageRule
 	securityPageRule     *cloudflare.PageRule
@@ -108,7 +108,7 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		// "cloudflare_root_dns_record_id":    edgeProtection.rootDNSRecord.ID(),
 		"cloudflare_security_filter_id":    edgeProtection.securityFilter.ID(),
 		"cloudflare_firewall_rule_id":      edgeProtection.securityFirewallRule.ID(),
-		"cloudflare_rate_limit_rule_id":    edgeProtection.rateLimitRule.ID(),
+		"cloudflare_rate_limit_ruleset_id": edgeProtection.rateLimitRuleset.ID(),
 		"cloudflare_cache_page_rule_id":    edgeProtection.cachePageRule.ID(),
 		"cloudflare_https_page_rule_id":    edgeProtection.httpsPageRule.ID(),
 		"cloudflare_security_page_rule_id": edgeProtection.securityPageRule.ID(),
@@ -149,11 +149,11 @@ func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 	}
 
 	// 5. Create rate limiting rules
-	rateLimitRule, err := e.createRateLimitRule(ctx, zone)
+	rateLimitRuleset, err := e.createRateLimitRuleset(ctx, zone)
 	if err != nil {
 		return fmt.Errorf("failed to create rate limit rule: %w", err)
 	}
-	e.rateLimitRule = rateLimitRule
+	e.rateLimitRuleset = rateLimitRuleset
 
 	// 6. Create page rules
 	err = e.createPageRules(ctx, zone)
@@ -201,9 +201,9 @@ func (e *EdgeProtection) GetSecurityFirewallRule() *cloudflare.FirewallRule {
 	return e.securityFirewallRule
 }
 
-// GetRateLimitRule returns the rate limit rule resource.
-func (e *EdgeProtection) GetRateLimitRule() *cloudflare.RateLimit {
-	return e.rateLimitRule
+// GetRateLimitRuleset returns the rate limit ruleset resource.
+func (e *EdgeProtection) GetRateLimitRuleset() *cloudflare.Ruleset {
+	return e.rateLimitRuleset
 }
 
 // GetCachePageRule returns the cache page rule resource.

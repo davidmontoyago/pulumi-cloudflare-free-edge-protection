@@ -7,43 +7,80 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-// createRateLimitRule creates rate limiting rules for DDoS protection.
-func (e *EdgeProtection) createRateLimitRule(ctx *pulumi.Context, zone *cloudflare.Zone) (*cloudflare.RateLimit, error) {
-	// Rate limiting for DDoS protection (Free tier allows 1 rule)
+// createRateLimitRules creates modern rate limiting rules (replaces legacy RateLimit)
+func (e *EdgeProtection) createRateLimitRuleset(ctx *pulumi.Context, zone *cloudflare.Zone) (*cloudflare.Ruleset, error) {
 
-	rateLimit, err := cloudflare.NewRateLimit(ctx, e.newResourceName("ddos", "protection", 64), &cloudflare.RateLimitArgs{
-		ZoneId: zone.ID(),
-		Threshold: e.RateLimitThreshold.ApplyT(func(v int) float64 {
-			return float64(v)
-		}).(pulumi.Float64Output),
-		Period: e.RateLimitPeriod.ApplyT(func(v int) float64 {
-			return float64(v)
-		}).(pulumi.Float64Output),
-		Match: &cloudflare.RateLimitMatchArgs{
-			Request: &cloudflare.RateLimitMatchRequestArgs{
-				Url: pulumi.String("*"), // Apply to all URLs
-				Schemes: pulumi.StringArray{
-					pulumi.String("HTTP"),
-					pulumi.String("HTTPS"),
+	rateLimitRuleset, err := cloudflare.NewRuleset(ctx, e.newResourceName("rate-limit-ruleset", "ddos", 64), &cloudflare.RulesetArgs{
+		ZoneId:      zone.ID(),
+		Name:        pulumi.String("Rate Limiting Rules"),
+		Kind:        pulumi.String("zone"),
+		Phase:       pulumi.String("http_ratelimit"),
+		Description: pulumi.String("Rate limiting for DDoS protection and abuse prevention"),
+		Rules: cloudflare.RulesetRuleArray{
+			// General rate limiting rule
+			&cloudflare.RulesetRuleArgs{
+				Action:      pulumi.String("block"),
+				Expression:  pulumi.String("true"), // Apply to all requests
+				Description: pulumi.String("General rate limiting for DDoS protection"),
+				Ratelimit: &cloudflare.RulesetRuleRatelimitArgs{
+					Characteristics: pulumi.StringArray{
+						pulumi.String("ip.src"), // Rate limit by source IP
+					},
+					Period: e.RateLimitPeriod.ApplyT(func(rateLimitPeriod int) int {
+						return rateLimitPeriod
+					}).(pulumi.IntOutput),
+					RequestsPerPeriod: e.RateLimitThreshold.ApplyT(func(rateLimitThreshold int) int {
+						return rateLimitThreshold
+					}).(pulumi.IntOutput),
+					MitigationTimeout: e.RateLimitTimeout.ApplyT(func(rateLimitTimeout int) int {
+						return rateLimitTimeout
+					}).(pulumi.IntOutput),
 				},
-				Methods: pulumi.StringArray{
-					pulumi.String("GET"),
-					pulumi.String("POST"),
-					pulumi.String("PUT"),
-					pulumi.String("DELETE"),
-				},
+				Enabled: pulumi.Bool(true),
 			},
-		},
-		Action: &cloudflare.RateLimitActionArgs{
-			Mode: e.RateLimitMode,
-			Timeout: e.RateLimitTimeout.ApplyT(func(v int) float64 {
-				return float64(v)
-			}).(pulumi.Float64Output),
+
+			// Stricter rate limiting for API endpoints
+			&cloudflare.RulesetRuleArgs{
+				Action:      pulumi.String("block"),
+				Expression:  pulumi.String(`http.request.uri.path matches "^/api/.*"`),
+				Description: pulumi.String("Stricter rate limiting for API endpoints"),
+				Ratelimit: &cloudflare.RulesetRuleRatelimitArgs{
+					Characteristics: pulumi.StringArray{
+						pulumi.String("ip.src"),
+					},
+					// TODO make me configurable
+					Period:            pulumi.Int(60),  // 1 minute
+					RequestsPerPeriod: pulumi.Int(30),  // 30 requests per minute for APIs
+					MitigationTimeout: pulumi.Int(300), // 5 minute timeout
+				},
+				Enabled: pulumi.Bool(true),
+			},
+
+			// Challenge-based rate limiting for login endpoints
+			&cloudflare.RulesetRuleArgs{
+				Action: pulumi.String("managed_challenge"),
+				Expression: pulumi.String(`
+									(http.request.uri.path contains "/login") or
+									(http.request.uri.path contains "/signin") or
+									(http.request.uri.path contains "/auth")
+							`),
+				Description: pulumi.String("Challenge-based protection for authentication endpoints"),
+				Ratelimit: &cloudflare.RulesetRuleRatelimitArgs{
+					Characteristics: pulumi.StringArray{
+						pulumi.String("ip.src"),
+					},
+					// TODO make me configurable
+					Period:            pulumi.Int(300), // 5 minutes
+					RequestsPerPeriod: pulumi.Int(5),   // 5 login attempts per 5 minutes
+					MitigationTimeout: pulumi.Int(900), // 15 minute timeout
+				},
+				Enabled: pulumi.Bool(true),
+			},
 		},
 	}, pulumi.Parent(e))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create rate limit rule for DDoS protection: %w", err)
+		return nil, fmt.Errorf("failed to create rate limit ruleset: %w", err)
 	}
 
-	return rateLimit, nil
+	return rateLimitRuleset, nil
 }

@@ -279,8 +279,8 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 		assert.Equal(t, "ban", <-firewallActionCh, "Firewall rule action should be set to 'ban'")
 
 		// Verify rate limit rule
-		rateLimitRule := edgeProtection.GetRateLimitRule()
-		require.NotNil(t, rateLimitRule, "Rate limit rule should not be nil")
+		rateLimitRuleset := edgeProtection.GetRateLimitRuleset()
+		require.NotNil(t, rateLimitRuleset, "Rate limit ruleset should not be nil")
 
 		// Verify page rules
 		cachePageRule := edgeProtection.GetCachePageRule()
