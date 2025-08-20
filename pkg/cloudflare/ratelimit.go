@@ -7,10 +7,11 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-// createRateLimitRules creates modern rate limiting rules (replaces legacy RateLimit)
+// createRateLimitRules creates modern rate limiting rules (replaces legacy RateLimit).
+// Uses 3 rules of the 70 under the free tier.
 func (e *EdgeProtection) createRateLimitRuleset(ctx *pulumi.Context, zone *cloudflare.Zone) (*cloudflare.Ruleset, error) {
 
-	rateLimitRuleset, err := cloudflare.NewRuleset(ctx, e.newResourceName("rate-limit-ruleset", "ddos", 64), &cloudflare.RulesetArgs{
+	rateLimitRuleset, err := cloudflare.NewRuleset(ctx, e.newResourceName("rate-limit-ruleset", "ddos-custom", 64), &cloudflare.RulesetArgs{
 		ZoneId:      zone.ID(),
 		Name:        pulumi.String("Rate Limiting Rules"),
 		Kind:        pulumi.String("zone"),
@@ -41,7 +42,8 @@ func (e *EdgeProtection) createRateLimitRuleset(ctx *pulumi.Context, zone *cloud
 
 			// Stricter rate limiting for API endpoints
 			&cloudflare.RulesetRuleArgs{
-				Action:      pulumi.String("block"),
+				Action: pulumi.String("block"),
+				// TODO make me configurable
 				Expression:  pulumi.String(`http.request.uri.path matches "^/api/.*"`),
 				Description: pulumi.String("Stricter rate limiting for API endpoints"),
 				Ratelimit: &cloudflare.RulesetRuleRatelimitArgs{

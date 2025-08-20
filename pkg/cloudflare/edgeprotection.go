@@ -3,6 +3,7 @@ package cloudflare
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/pulumi/pulumi-cloudflare/sdk/v6/go/cloudflare"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -35,17 +36,19 @@ type EdgeProtection struct {
 	name string
 
 	// Core resources
-	zone                 *cloudflare.Zone
-	backendDNSRecord     *cloudflare.DnsRecord
-	frontendDNSRecord    *cloudflare.DnsRecord
-	rootDNSRecord        *cloudflare.DnsRecord
-	zoneSettings         *cloudflare.ZoneSetting
-	securityFilter       *cloudflare.Filter
-	securityFirewallRule *cloudflare.FirewallRule
-	rateLimitRuleset     *cloudflare.Ruleset
-	cachePageRule        *cloudflare.PageRule
-	httpsPageRule        *cloudflare.PageRule
-	securityPageRule     *cloudflare.PageRule
+	zone              *cloudflare.Zone
+	backendDNSRecord  *cloudflare.DnsRecord
+	frontendDNSRecord *cloudflare.DnsRecord
+	rootDNSRecord     *cloudflare.DnsRecord
+	zoneSettings      *cloudflare.ZoneSetting
+	rateLimitRuleset  *cloudflare.Ruleset
+	ddosL4Ruleset     *cloudflare.Ruleset
+	ddosL7Ruleset     *cloudflare.Ruleset
+	wafManagedRuleset *cloudflare.Ruleset
+	wafCustomRuleset  *cloudflare.Ruleset
+	cacheRuleset      *cloudflare.Ruleset
+	redirectRuleset   *cloudflare.Ruleset
+	configRuleset     *cloudflare.Ruleset
 }
 
 // NewEdgeProtection creates a new EdgeProtection instance with the provided configuration.
@@ -106,12 +109,14 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		"cloudflare_backend_dns_record_id":  edgeProtection.backendDNSRecord.ID(),
 		"cloudflare_frontend_dns_record_id": edgeProtection.frontendDNSRecord.ID(),
 		// "cloudflare_root_dns_record_id":    edgeProtection.rootDNSRecord.ID(),
-		"cloudflare_security_filter_id":    edgeProtection.securityFilter.ID(),
-		"cloudflare_firewall_rule_id":      edgeProtection.securityFirewallRule.ID(),
-		"cloudflare_rate_limit_ruleset_id": edgeProtection.rateLimitRuleset.ID(),
-		"cloudflare_cache_page_rule_id":    edgeProtection.cachePageRule.ID(),
-		"cloudflare_https_page_rule_id":    edgeProtection.httpsPageRule.ID(),
-		"cloudflare_security_page_rule_id": edgeProtection.securityPageRule.ID(),
+		"cloudflare_rate_limit_ruleset_id":  edgeProtection.rateLimitRuleset.ID(),
+		"cloudflare_ddos_l4_ruleset_id":     edgeProtection.ddosL4Ruleset.ID(),
+		"cloudflare_ddos_l7_ruleset_id":     edgeProtection.ddosL7Ruleset.ID(),
+		"cloudflare_waf_managed_ruleset_id": edgeProtection.wafManagedRuleset.ID(),
+		"cloudflare_waf_custom_ruleset_id":  edgeProtection.wafCustomRuleset.ID(),
+		"cloudflare_cache_ruleset_id":       edgeProtection.cacheRuleset.ID(),
+		"cloudflare_redirect_ruleset_id":    edgeProtection.redirectRuleset.ID(),
+		"cloudflare_config_ruleset_id":      edgeProtection.configRuleset.ID(),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to register resource outputs: %w", err)
@@ -142,24 +147,43 @@ func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 	}
 	e.zoneSettings = zoneSettings
 
-	// 4. Create security filters and firewall rules
-	err = e.createFirewallRules(ctx, zone)
-	if err != nil {
-		return fmt.Errorf("failed to create security rules: %w", err)
-	}
-
-	// 5. Create rate limiting rules
+	// 4. Create rate limiting rules
 	rateLimitRuleset, err := e.createRateLimitRuleset(ctx, zone)
 	if err != nil {
 		return fmt.Errorf("failed to create rate limit rule: %w", err)
 	}
 	e.rateLimitRuleset = rateLimitRuleset
 
-	// 6. Create page rules
-	err = e.createPageRules(ctx, zone)
+	// 5. Create DDoS protection rules
+	ddosL4Ruleset, ddosL7Ruleset, err := e.createDDoSProtectionRules(ctx, zone)
 	if err != nil {
-		return fmt.Errorf("failed to create page rules: %w", err)
+		return fmt.Errorf("failed to create DDoS protection rules: %w", err)
 	}
+	e.ddosL4Ruleset = ddosL4Ruleset
+	e.ddosL7Ruleset = ddosL7Ruleset
+
+	// 6. Create WAF managed rules
+	wafManagedRuleset, err := e.createWAFManagedRules(ctx, zone)
+	if err != nil {
+		return fmt.Errorf("failed to create WAF managed rules: %w", err)
+	}
+	e.wafManagedRuleset = wafManagedRuleset
+
+	// 7. Create custom WAF rules
+	wafCustomRuleset, err := e.createWAFCustomRules(ctx, zone)
+	if err != nil {
+		return fmt.Errorf("failed to create WAF custom rules: %w", err)
+	}
+	e.wafCustomRuleset = wafCustomRuleset
+
+	// 8. Create traffic optimization rules
+	cacheRuleset, redirectRuleset, configRuleset, err := e.createOptimizationRules(ctx, zone)
+	if err != nil {
+		return fmt.Errorf("failed to create optimization rules: %w", err)
+	}
+	e.cacheRuleset = cacheRuleset
+	e.redirectRuleset = redirectRuleset
+	e.configRuleset = configRuleset
 
 	return nil
 }
@@ -191,32 +215,7 @@ func (e *EdgeProtection) GetZoneSettings() *cloudflare.ZoneSetting {
 	return e.zoneSettings
 }
 
-// GetSecurityFilter returns the security filter resource.
-func (e *EdgeProtection) GetSecurityFilter() *cloudflare.Filter {
-	return e.securityFilter
-}
-
-// GetSecurityFirewallRule returns the security firewall rule resource.
-func (e *EdgeProtection) GetSecurityFirewallRule() *cloudflare.FirewallRule {
-	return e.securityFirewallRule
-}
-
 // GetRateLimitRuleset returns the rate limit ruleset resource.
 func (e *EdgeProtection) GetRateLimitRuleset() *cloudflare.Ruleset {
 	return e.rateLimitRuleset
-}
-
-// GetCachePageRule returns the cache page rule resource.
-func (e *EdgeProtection) GetCachePageRule() *cloudflare.PageRule {
-	return e.cachePageRule
-}
-
-// GetHTTPSPageRule returns the HTTPS page rule resource.
-func (e *EdgeProtection) GetHTTPSPageRule() *cloudflare.PageRule {
-	return e.httpsPageRule
-}
-
-// GetSecurityPageRule returns the security page rule resource.
-func (e *EdgeProtection) GetSecurityPageRule() *cloudflare.PageRule {
-	return e.securityPageRule
 }

@@ -262,35 +262,9 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 		zoneSettings := edgeProtection.GetZoneSettings()
 		require.NotNil(t, zoneSettings, "Zone settings should not be nil")
 
-		// Verify security filter and firewall rule
-		securityFilter := edgeProtection.GetSecurityFilter()
-		require.NotNil(t, securityFilter, "Security filter should not be nil")
-
-		securityFirewallRule := edgeProtection.GetSecurityFirewallRule()
-		require.NotNil(t, securityFirewallRule, "Security firewall rule should not be nil")
-
-		// Verify firewall rule action is set to "ban"
-		firewallActionCh := make(chan string, 1)
-		defer close(firewallActionCh)
-		securityFirewallRule.Action.ApplyT(func(action cloudflare.FirewallRuleAction) error {
-			firewallActionCh <- *action.Mode
-			return nil
-		})
-		assert.Equal(t, "ban", <-firewallActionCh, "Firewall rule action should be set to 'ban'")
-
 		// Verify rate limit rule
 		rateLimitRuleset := edgeProtection.GetRateLimitRuleset()
 		require.NotNil(t, rateLimitRuleset, "Rate limit ruleset should not be nil")
-
-		// Verify page rules
-		cachePageRule := edgeProtection.GetCachePageRule()
-		require.NotNil(t, cachePageRule, "Cache page rule should not be nil")
-
-		httpsPageRule := edgeProtection.GetHTTPSPageRule()
-		require.NotNil(t, httpsPageRule, "HTTPS page rule should not be nil")
-
-		securityPageRule := edgeProtection.GetSecurityPageRule()
-		require.NotNil(t, securityPageRule, "Security page rule should not be nil")
 
 		return nil
 	}, pulumi.WithMocks("project", "stack", &edgeProtectionMocks{}))

@@ -26,10 +26,10 @@ func (e *EdgeProtection) configureSSLSettings(ctx *pulumi.Context, zone *cloudfl
 			"universal_ssl": pulumi.String("on"),
 			//See: https://www.reddit.com/r/googlecloud/comments/kvj2ss/comment/gy7k2my/
 			"always_use_https": e.AlwaysUseHTTPS.ApplyT(func(enabled bool) string {
-				return "off"
+				return "on"
 			}).(pulumi.StringOutput),
 			"automatic_https_rewrites": e.AutoHTTPSRewrites.ApplyT(func(enabled bool) string {
-				return "off"
+				return "on"
 			}).(pulumi.StringOutput),
 		},
 	}, pulumi.Parent(e))
