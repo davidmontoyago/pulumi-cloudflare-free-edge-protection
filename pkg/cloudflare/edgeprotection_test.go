@@ -247,6 +247,7 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 		// Verify zone settings
 		zoneSettings := edgeProtection.GetZoneSettings()
 		require.NotNil(t, zoneSettings, "Zone settings should not be nil")
+		assert.Greater(t, len(zoneSettings), 0, "Zone settings should have at least 1 setting")
 
 		// Verify rate limit rule
 		rateLimitRuleset := edgeProtection.GetRateLimitRuleset()

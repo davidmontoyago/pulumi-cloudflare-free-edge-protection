@@ -39,7 +39,7 @@ type EdgeProtection struct {
 	backendDNSRecord  *cloudflare.DnsRecord
 	frontendDNSRecord *cloudflare.DnsRecord
 	rootDNSRecord     *cloudflare.DnsRecord
-	zoneSettings      *cloudflare.ZoneSetting
+	zoneSettings      []*cloudflare.ZoneSetting
 	rateLimitRuleset  *cloudflare.Ruleset
 	ddosL4Ruleset     *cloudflare.Ruleset
 	ddosL7Ruleset     *cloudflare.Ruleset
@@ -228,7 +228,7 @@ func (e *EdgeProtection) GetRootDNSRecord() *cloudflare.DnsRecord {
 }
 
 // GetZoneSettings returns the zone settings override resource.
-func (e *EdgeProtection) GetZoneSettings() *cloudflare.ZoneSetting {
+func (e *EdgeProtection) GetZoneSettings() []*cloudflare.ZoneSetting {
 	return e.zoneSettings
 }
 
