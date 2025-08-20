@@ -89,13 +89,12 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 			FrontendURL:         pulumi.String(testFrontendURL),
 			CloudflareAccountID: testCloudflareAccountID,
 			SecurityLevel:       pulumi.String("medium"),
-			CacheLevel:          pulumi.String("aggressive"),
 			BrowserCacheTTL:     pulumi.Int(14400),
 			EdgeCacheTTLSeconds: pulumi.Int(2419200),
 			RateLimitThreshold:  pulumi.Int(60),
 			RateLimitPeriod:     pulumi.Int(60),
 			RateLimitTimeout:    pulumi.Int(600),
-			RateLimitMode:       pulumi.String("simulate"),
+			RateLimitMode:       pulumi.String("managed_challenge"),
 			SSLMode:             pulumi.String("full"),
 			MinTLSVersion:       pulumi.String("1.2"),
 			AlwaysUseHTTPS:      pulumi.Bool(true),
@@ -140,15 +139,6 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 			return nil
 		})
 		assert.Equal(t, "medium", <-securityLevelCh, "Security level should match")
-
-		// Verify cache level
-		cacheLevelCh := make(chan string, 1)
-		defer close(cacheLevelCh)
-		edgeProtection.CacheLevel.ApplyT(func(level string) error {
-			cacheLevelCh <- level
-			return nil
-		})
-		assert.Equal(t, "aggressive", <-cacheLevelCh, "Cache level should match")
 
 		// Verify browser cache TTL
 		browserCacheTTLCh := make(chan int, 1)
@@ -284,14 +274,6 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 			return nil
 		})
 		assert.Equal(t, "medium", <-securityLevelCh, "Security level should default to 'medium'")
-
-		cacheLevelCh := make(chan string, 1)
-		defer close(cacheLevelCh)
-		edgeProtection.CacheLevel.ApplyT(func(level string) error {
-			cacheLevelCh <- level
-			return nil
-		})
-		assert.Equal(t, "aggressive", <-cacheLevelCh, "Cache level should default to 'aggressive'")
 
 		browserCacheTTLCh := make(chan int, 1)
 		defer close(browserCacheTTLCh)

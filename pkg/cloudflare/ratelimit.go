@@ -20,7 +20,7 @@ func (e *EdgeProtection) createRateLimitRuleset(ctx *pulumi.Context, zone *cloud
 		Rules: cloudflare.RulesetRuleArray{
 			// General rate limiting rule
 			&cloudflare.RulesetRuleArgs{
-				Action:      pulumi.String("block"),
+				Action:      e.RateLimitMode,
 				Expression:  pulumi.String("true"), // Apply to all requests
 				Description: pulumi.String("General rate limiting for DDoS protection"),
 				Ratelimit: &cloudflare.RulesetRuleRatelimitArgs{
@@ -42,7 +42,7 @@ func (e *EdgeProtection) createRateLimitRuleset(ctx *pulumi.Context, zone *cloud
 
 			// Stricter rate limiting for API endpoints
 			&cloudflare.RulesetRuleArgs{
-				Action: pulumi.String("block"),
+				Action: e.RateLimitMode,
 				// TODO make me configurable
 				Expression:  pulumi.String(`http.request.uri.path matches "^/api/.*"`),
 				Description: pulumi.String("Stricter rate limiting for API endpoints"),

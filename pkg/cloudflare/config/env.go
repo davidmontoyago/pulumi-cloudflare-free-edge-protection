@@ -19,13 +19,12 @@ type Config struct {
 	BackendURL          string `envconfig:"BACKEND_URL" required:"true"`
 	FrontendURL         string `envconfig:"FRONTEND_URL" required:"true"`
 	SecurityLevel       string `envconfig:"SECURITY_LEVEL" default:"medium"`
-	CacheLevel          string `envconfig:"CACHE_LEVEL" default:"aggressive"`
 	BrowserCacheTTL     int    `envconfig:"BROWSER_CACHE_TTL" default:"14400"`
 	EdgeCacheTTLSeconds int    `envconfig:"EDGE_CACHE_TTL_SECONDS" default:"2419200"`
 	RateLimitThreshold  int    `envconfig:"RATE_LIMIT_THRESHOLD" default:"60"`
 	RateLimitPeriod     int    `envconfig:"RATE_LIMIT_PERIOD" default:"60"`
 	RateLimitTimeout    int    `envconfig:"RATE_LIMIT_TIMEOUT" default:"600"`
-	RateLimitMode       string `envconfig:"RATE_LIMIT_MODE" default:"simulate"`
+	RateLimitMode       string `envconfig:"RATE_LIMIT_MODE" default:"block"`
 	SSLMode             string `envconfig:"SSL_MODE" default:"full"`
 	MinTLSVersion       string `envconfig:"MIN_TLS_VERSION" default:"1.2"`
 	AlwaysUseHTTPS      bool   `envconfig:"ALWAYS_USE_HTTPS" default:"true"`
@@ -49,7 +48,7 @@ func LoadConfig() (*Config, error) {
 	log.Printf("  Backend URL: %s", config.BackendURL)
 	log.Printf("  Frontend URL: %s", config.FrontendURL)
 	log.Printf("  Security Level: %s", config.SecurityLevel)
-	log.Printf("  Cache Level: %s", config.CacheLevel)
+	log.Printf("  Rate Limit Mode: %s", config.RateLimitMode)
 	log.Printf("  Browser Cache TTL: %d seconds", config.BrowserCacheTTL)
 	log.Printf("  Edge Cache TTL: %d seconds", config.EdgeCacheTTLSeconds)
 	log.Printf("  Rate Limit Threshold: %d requests", config.RateLimitThreshold)
@@ -74,7 +73,6 @@ func (c *Config) ToEdgeProtectionArgs() *cloudflare.EdgeProtectionArgs {
 		FrontendURL:         pulumi.String(c.FrontendURL),
 		CloudflareAccountID: c.CloudflareAccountID,
 		SecurityLevel:       pulumi.String(c.SecurityLevel),
-		CacheLevel:          pulumi.String(c.CacheLevel),
 		BrowserCacheTTL:     pulumi.Int(c.BrowserCacheTTL),
 		EdgeCacheTTLSeconds: pulumi.Int(c.EdgeCacheTTLSeconds),
 		RateLimitThreshold:  pulumi.Int(c.RateLimitThreshold),

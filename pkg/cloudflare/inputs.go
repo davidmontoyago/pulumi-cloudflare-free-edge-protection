@@ -19,9 +19,6 @@ type EdgeProtectionArgs struct {
 	// Security level for Cloudflare protection (optional, defaults to "medium")
 	// Valid values: "off", "essentially_off", "low", "medium", "high", "under_attack"
 	SecurityLevel pulumi.StringInput
-	// Cache level for CDN optimization (optional, defaults to "aggressive")
-	// Valid values: "aggressive", "basic", "simplified"
-	CacheLevel pulumi.StringInput
 	// Browser cache TTL in seconds (optional, defaults to 14400 = 4 hours)
 	BrowserCacheTTL pulumi.IntInput
 	// Edge cache TTL in seconds for static assets (optional, defaults to 2419200 = 28 days)
@@ -32,8 +29,8 @@ type EdgeProtectionArgs struct {
 	RateLimitPeriod pulumi.IntInput
 	// Rate limit timeout in seconds when threshold is exceeded (optional, defaults to 600 = 10 minutes)
 	RateLimitTimeout pulumi.IntInput
-	// Rate limit action mode (optional, defaults to "simulate")
-	// Valid values: "simulate", "ban", "challenge", "js_challenge"
+	// Rate limit action mode (optional, defaults to "block")
+	// Valid values: "managed_challenge", "block", "challenge", "js_challenge"
 	RateLimitMode pulumi.StringInput
 	// SSL mode for the zone (optional, defaults to "full")
 	// Valid values: "off", "flexible", "full", "strict"

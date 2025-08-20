@@ -17,7 +17,6 @@ type EdgeProtection struct {
 	FrontendURL         pulumi.StringOutput
 	CloudflareAccountID string
 	SecurityLevel       pulumi.StringOutput
-	CacheLevel          pulumi.StringOutput
 	BrowserCacheTTL     pulumi.IntOutput
 	EdgeCacheTTLSeconds pulumi.IntOutput
 	RateLimitThreshold  pulumi.IntOutput
@@ -72,13 +71,12 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		FrontendURL:         args.FrontendURL.ToStringOutput(),
 		CloudflareAccountID: args.CloudflareAccountID,
 		SecurityLevel:       setDefaultString(args.SecurityLevel, "medium"),
-		CacheLevel:          setDefaultString(args.CacheLevel, "aggressive"),
 		BrowserCacheTTL:     setDefaultInt(args.BrowserCacheTTL, 14400),       // 4 hours
 		EdgeCacheTTLSeconds: setDefaultInt(args.EdgeCacheTTLSeconds, 2419200), // 28 days
 		RateLimitThreshold:  setDefaultInt(args.RateLimitThreshold, 60),       // 60 requests
 		RateLimitPeriod:     setDefaultInt(args.RateLimitPeriod, 60),          // 60 seconds
 		RateLimitTimeout:    setDefaultInt(args.RateLimitTimeout, 600),        // 10 minutes
-		RateLimitMode:       setDefaultString(args.RateLimitMode, "simulate"),
+		RateLimitMode:       setDefaultString(args.RateLimitMode, "block"),
 		SSLMode:             setDefaultString(args.SSLMode, "full"),
 		MinTLSVersion:       setDefaultString(args.MinTLSVersion, "1.2"),
 		AlwaysUseHTTPS:      setDefaultBool(args.AlwaysUseHTTPS, true),
