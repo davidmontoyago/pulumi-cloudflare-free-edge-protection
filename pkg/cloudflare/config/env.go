@@ -22,8 +22,6 @@ type Config struct {
 	BrowserCacheTTL     int    `envconfig:"BROWSER_CACHE_TTL" default:"14400"`
 	EdgeCacheTTLSeconds int    `envconfig:"EDGE_CACHE_TTL_SECONDS" default:"2419200"`
 	RateLimitThreshold  int    `envconfig:"RATE_LIMIT_THRESHOLD" default:"60"`
-	RateLimitPeriod     int    `envconfig:"RATE_LIMIT_PERIOD" default:"60"`
-	RateLimitTimeout    int    `envconfig:"RATE_LIMIT_TIMEOUT" default:"600"`
 	RateLimitMode       string `envconfig:"RATE_LIMIT_MODE" default:"block"`
 	TLSEncryptionMode   string `envconfig:"SSL_MODE" default:"strict"`
 	MinTLSVersion       string `envconfig:"MIN_TLS_VERSION" default:"1.2"`
@@ -52,8 +50,6 @@ func LoadConfig() (*Config, error) {
 	log.Printf("  Browser Cache TTL: %d seconds", config.BrowserCacheTTL)
 	log.Printf("  Edge Cache TTL: %d seconds", config.EdgeCacheTTLSeconds)
 	log.Printf("  Rate Limit Threshold: %d requests", config.RateLimitThreshold)
-	log.Printf("  Rate Limit Period: %d seconds", config.RateLimitPeriod)
-	log.Printf("  Rate Limit Timeout: %d seconds", config.RateLimitTimeout)
 	log.Printf("  Rate Limit Mode: %s", config.RateLimitMode)
 	log.Printf("  SSL Mode: %s", config.TLSEncryptionMode)
 	log.Printf("  Min TLS Version: %s", config.MinTLSVersion)
@@ -76,8 +72,6 @@ func (c *Config) ToEdgeProtectionArgs() *cloudflare.EdgeProtectionArgs {
 		BrowserCacheTTL:     pulumi.Int(c.BrowserCacheTTL),
 		EdgeCacheTTLSeconds: pulumi.Int(c.EdgeCacheTTLSeconds),
 		RateLimitThreshold:  pulumi.Int(c.RateLimitThreshold),
-		RateLimitPeriod:     pulumi.Int(c.RateLimitPeriod),
-		RateLimitTimeout:    pulumi.Int(c.RateLimitTimeout),
 		RateLimitMode:       pulumi.String(c.RateLimitMode),
 		TLSEncryptionMode:   pulumi.String(c.TLSEncryptionMode),
 		MinTLSVersion:       pulumi.String(c.MinTLSVersion),

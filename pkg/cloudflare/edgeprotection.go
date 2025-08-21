@@ -12,24 +12,24 @@ import (
 type EdgeProtection struct {
 	pulumi.ResourceState
 
-	Domain              string
-	BackendURL          pulumi.StringOutput
-	FrontendURL         pulumi.StringOutput
-	CloudflareAccountID string
-	SecurityLevel       pulumi.StringOutput
-	BrowserCacheTTL     pulumi.IntOutput
-	EdgeCacheTTLSeconds pulumi.IntOutput
-	RateLimitThreshold  pulumi.IntOutput
-	RateLimitPeriod     pulumi.IntOutput
-	RateLimitTimeout    pulumi.IntOutput
-	RateLimitMode       pulumi.StringOutput
-	TLSEncryptionMode   pulumi.StringOutput
-	MinTLSVersion       pulumi.StringOutput
-	AlwaysUseHTTPS      pulumi.BoolOutput
-	TLS13Enabled        pulumi.BoolOutput
-	BrowserCheckEnabled pulumi.BoolOutput
-	AutoHTTPSRewrites   pulumi.BoolOutput
-	Labels              map[string]string
+	Domain                   string
+	BackendURL               pulumi.StringOutput
+	FrontendURL              pulumi.StringOutput
+	CloudflareAccountID      string
+	SecurityLevel            pulumi.StringOutput
+	BrowserCacheTTL          pulumi.IntOutput
+	EdgeCacheTTLSeconds      pulumi.IntOutput
+	RateLimitThreshold       pulumi.IntOutput
+	RateLimitPeriodSeconds   pulumi.IntOutput
+	MitigationTimeoutSeconds pulumi.IntOutput
+	RateLimitMode            pulumi.StringOutput
+	TLSEncryptionMode        pulumi.StringOutput
+	MinTLSVersion            pulumi.StringOutput
+	AlwaysUseHTTPS           pulumi.BoolOutput
+	TLS13Enabled             pulumi.BoolOutput
+	BrowserCheckEnabled      pulumi.BoolOutput
+	AutoHTTPSRewrites        pulumi.BoolOutput
+	Labels                   map[string]string
 
 	name string
 
@@ -66,24 +66,24 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 	}
 
 	edgeProtection := &EdgeProtection{
-		Domain:              args.Domain,
-		BackendURL:          args.BackendURL.ToStringOutput(),
-		FrontendURL:         args.FrontendURL.ToStringOutput(),
-		CloudflareAccountID: args.CloudflareAccountID,
-		SecurityLevel:       setDefaultString(args.SecurityLevel, "medium"),
-		BrowserCacheTTL:     setDefaultInt(args.BrowserCacheTTL, 14400),       // 4 hours
-		EdgeCacheTTLSeconds: setDefaultInt(args.EdgeCacheTTLSeconds, 2419200), // 28 days
-		RateLimitThreshold:  setDefaultInt(args.RateLimitThreshold, 60),       // 60 requests
-		RateLimitPeriod:     setDefaultInt(args.RateLimitPeriod, 60),          // 60 seconds
-		RateLimitTimeout:    setDefaultInt(args.RateLimitTimeout, 600),        // 10 minutes
-		RateLimitMode:       setDefaultString(args.RateLimitMode, "block"),
-		TLSEncryptionMode:   setDefaultString(args.TLSEncryptionMode, "strict"),
-		MinTLSVersion:       setDefaultString(args.MinTLSVersion, "1.2"),
-		AlwaysUseHTTPS:      setDefaultBool(args.AlwaysUseHTTPS, true),
-		TLS13Enabled:        setDefaultBool(args.TLS13Enabled, true),
-		BrowserCheckEnabled: setDefaultBool(args.BrowserCheckEnabled, true),
-		AutoHTTPSRewrites:   setDefaultBool(args.AutoHTTPSRewrites, true),
-		Labels:              args.Labels,
+		Domain:                   args.Domain,
+		BackendURL:               args.BackendURL.ToStringOutput(),
+		FrontendURL:              args.FrontendURL.ToStringOutput(),
+		CloudflareAccountID:      args.CloudflareAccountID,
+		SecurityLevel:            setDefaultString(args.SecurityLevel, "medium"),
+		BrowserCacheTTL:          setDefaultInt(args.BrowserCacheTTL, 14400),       // 4 hours
+		EdgeCacheTTLSeconds:      setDefaultInt(args.EdgeCacheTTLSeconds, 2419200), // 28 days
+		RateLimitPeriodSeconds:   setDefaultInt(nil, 10),                           // Free tier requires 10 seconds
+		MitigationTimeoutSeconds: setDefaultInt(nil, 10),                           // Free tier requires 10 seconds
+		RateLimitThreshold:       setDefaultInt(args.RateLimitThreshold, 60),       // 60 requests per 10s period
+		RateLimitMode:            setDefaultString(args.RateLimitMode, "block"),
+		TLSEncryptionMode:        setDefaultString(args.TLSEncryptionMode, "strict"),
+		MinTLSVersion:            setDefaultString(args.MinTLSVersion, "1.2"),
+		AlwaysUseHTTPS:           setDefaultBool(args.AlwaysUseHTTPS, true),
+		TLS13Enabled:             setDefaultBool(args.TLS13Enabled, true),
+		BrowserCheckEnabled:      setDefaultBool(args.BrowserCheckEnabled, true),
+		AutoHTTPSRewrites:        setDefaultBool(args.AutoHTTPSRewrites, true),
+		Labels:                   args.Labels,
 
 		name: name,
 	}

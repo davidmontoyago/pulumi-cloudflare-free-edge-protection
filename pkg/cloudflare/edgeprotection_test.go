@@ -92,8 +92,6 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 			BrowserCacheTTL:     pulumi.Int(14400),
 			EdgeCacheTTLSeconds: pulumi.Int(2419200),
 			RateLimitThreshold:  pulumi.Int(60),
-			RateLimitPeriod:     pulumi.Int(60),
-			RateLimitTimeout:    pulumi.Int(600),
 			RateLimitMode:       pulumi.String("managed_challenge"),
 			TLSEncryptionMode:   pulumi.String("full"),
 			MinTLSVersion:       pulumi.String("1.2"),
@@ -301,19 +299,19 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 
 		rateLimitPeriodCh := make(chan int, 1)
 		defer close(rateLimitPeriodCh)
-		edgeProtection.RateLimitPeriod.ApplyT(func(period int) error {
+		edgeProtection.RateLimitPeriodSeconds.ApplyT(func(period int) error {
 			rateLimitPeriodCh <- period
 			return nil
 		})
-		assert.Equal(t, 60, <-rateLimitPeriodCh, "Rate limit period should default to 60")
+		assert.Equal(t, 10, <-rateLimitPeriodCh, "Rate limit period should default to 10")
 
 		rateLimitTimeoutCh := make(chan int, 1)
 		defer close(rateLimitTimeoutCh)
-		edgeProtection.RateLimitTimeout.ApplyT(func(timeout int) error {
+		edgeProtection.MitigationTimeoutSeconds.ApplyT(func(timeout int) error {
 			rateLimitTimeoutCh <- timeout
 			return nil
 		})
-		assert.Equal(t, 600, <-rateLimitTimeoutCh, "Rate limit timeout should default to 600")
+		assert.Equal(t, 10, <-rateLimitTimeoutCh, "Rate limit timeout should default to 10")
 
 		rateLimitModeCh := make(chan string, 1)
 		defer close(rateLimitModeCh)
@@ -454,8 +452,6 @@ func TestNewEdgeProtection_RateLimitRuleset(t *testing.T) {
 			FrontendURL:         pulumi.String(testFrontendURL),
 			CloudflareAccountID: testCloudflareAccountID,
 			RateLimitThreshold:  pulumi.Int(100),
-			RateLimitPeriod:     pulumi.Int(120),
-			RateLimitTimeout:    pulumi.Int(900),
 		}
 
 		edgeProtection, err := edge.NewEdgeProtection(ctx, "test-rate-limit", args)

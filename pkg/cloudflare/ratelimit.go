@@ -9,6 +9,8 @@ import (
 
 // createRateLimitRules creates modern rate limiting rules (replaces legacy RateLimit).
 // Only 1 rule in the phase http_ratelimit can be used under the free tier.
+// See:
+// https://developers.cloudflare.com/waf/rate-limiting-rules/#availability
 func (e *EdgeProtection) createRateLimitRuleset(ctx *pulumi.Context, zone *cloudflare.Zone) (*cloudflare.Ruleset, error) {
 
 	rateLimitRuleset, err := cloudflare.NewRuleset(ctx, e.newResourceName("rate-limit-ruleset", "ddos-custom", 64), &cloudflare.RulesetArgs{
@@ -31,13 +33,13 @@ func (e *EdgeProtection) createRateLimitRuleset(ctx *pulumi.Context, zone *cloud
 						// ensure counters are not shared across data centers
 						pulumi.String("cf.colo.id"),
 					},
-					Period: e.RateLimitPeriod.ApplyT(func(rateLimitPeriod int) int {
+					Period: e.RateLimitPeriodSeconds.ApplyT(func(rateLimitPeriod int) int {
 						return rateLimitPeriod
 					}).(pulumi.IntOutput),
 					RequestsPerPeriod: e.RateLimitThreshold.ApplyT(func(rateLimitThreshold int) int {
 						return rateLimitThreshold
 					}).(pulumi.IntOutput),
-					MitigationTimeout: e.RateLimitTimeout.ApplyT(func(rateLimitTimeout int) int {
+					MitigationTimeout: e.MitigationTimeoutSeconds.ApplyT(func(rateLimitTimeout int) int {
 						return rateLimitTimeout
 					}).(pulumi.IntOutput),
 				},
