@@ -25,7 +25,11 @@ func (e *EdgeProtection) createRateLimitRuleset(ctx *pulumi.Context, zone *cloud
 				Description: pulumi.String("General rate limiting for DDoS protection"),
 				Ratelimit: &cloudflare.RulesetRuleRatelimitArgs{
 					Characteristics: pulumi.StringArray{
-						pulumi.String("ip.src"), // Rate limit by source IP
+						// Rate limit by source IP
+						pulumi.String("ip.src"),
+						// Mandatory characteristic for all rate limiting rules to
+						// ensure counters are not shared across data centers
+						pulumi.String("cf.colo.id"),
 					},
 					Period: e.RateLimitPeriod.ApplyT(func(rateLimitPeriod int) int {
 						return rateLimitPeriod
@@ -49,6 +53,9 @@ func (e *EdgeProtection) createRateLimitRuleset(ctx *pulumi.Context, zone *cloud
 				Ratelimit: &cloudflare.RulesetRuleRatelimitArgs{
 					Characteristics: pulumi.StringArray{
 						pulumi.String("ip.src"),
+						// Mandatory characteristic for all rate limiting rules to
+						// ensure counters are not shared across data centers
+						pulumi.String("cf.colo.id"),
 					},
 					// TODO make me configurable
 					Period:            pulumi.Int(60),  // 1 minute
@@ -60,16 +67,15 @@ func (e *EdgeProtection) createRateLimitRuleset(ctx *pulumi.Context, zone *cloud
 
 			// Challenge-based rate limiting for login endpoints
 			&cloudflare.RulesetRuleArgs{
-				Action: pulumi.String("managed_challenge"),
-				Expression: pulumi.String(`
-									(http.request.uri.path contains "/login") or
-									(http.request.uri.path contains "/signin") or
-									(http.request.uri.path contains "/auth")
-							`),
+				Action:      pulumi.String("managed_challenge"),
+				Expression:  pulumi.String(`(http.request.uri.path matches "\/[login|signin|auth]+$")`),
 				Description: pulumi.String("Challenge-based protection for authentication endpoints"),
 				Ratelimit: &cloudflare.RulesetRuleRatelimitArgs{
 					Characteristics: pulumi.StringArray{
 						pulumi.String("ip.src"),
+						// Mandatory characteristic for all rate limiting rules to
+						// ensure counters are not shared across data centers
+						pulumi.String("cf.colo.id"),
 					},
 					// TODO make me configurable
 					Period:            pulumi.Int(300), // 5 minutes
