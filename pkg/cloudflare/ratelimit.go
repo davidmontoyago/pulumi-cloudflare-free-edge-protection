@@ -8,7 +8,7 @@ import (
 )
 
 // createRateLimitRules creates modern rate limiting rules (replaces legacy RateLimit).
-// Uses 3 rules of the 70 under the free tier.
+// Only 1 rule in the phase http_ratelimit can be used under the free tier.
 func (e *EdgeProtection) createRateLimitRuleset(ctx *pulumi.Context, zone *cloudflare.Zone) (*cloudflare.Ruleset, error) {
 
 	rateLimitRuleset, err := cloudflare.NewRuleset(ctx, e.newResourceName("rate-limit-ruleset", "ddos-custom", 64), &cloudflare.RulesetArgs{
@@ -44,46 +44,45 @@ func (e *EdgeProtection) createRateLimitRuleset(ctx *pulumi.Context, zone *cloud
 				Enabled: pulumi.Bool(true),
 			},
 
+			// ---- maximum number of rules in the phase http_ratelimit is 1 ----
+
 			// Stricter rate limiting for API endpoints
-			&cloudflare.RulesetRuleArgs{
-				Action: e.RateLimitMode,
-				// TODO make me configurable
-				Expression:  pulumi.String(`http.request.uri.path matches "^/api/.*"`),
-				Description: pulumi.String("Stricter rate limiting for API endpoints"),
-				Ratelimit: &cloudflare.RulesetRuleRatelimitArgs{
-					Characteristics: pulumi.StringArray{
-						pulumi.String("ip.src"),
-						// Mandatory characteristic for all rate limiting rules to
-						// ensure counters are not shared across data centers
-						pulumi.String("cf.colo.id"),
-					},
-					// TODO make me configurable
-					Period:            pulumi.Int(60),  // 1 minute
-					RequestsPerPeriod: pulumi.Int(30),  // 30 requests per minute for APIs
-					MitigationTimeout: pulumi.Int(300), // 5 minute timeout
-				},
-				Enabled: pulumi.Bool(true),
-			},
+			// &cloudflare.RulesetRuleArgs{
+			// 	Action: e.RateLimitMode,
+			// 	Expression:  pulumi.String(`http.request.uri.path matches "^/api/.*"`),
+			// 	Description: pulumi.String("Stricter rate limiting for API endpoints"),
+			// 	Ratelimit: &cloudflare.RulesetRuleRatelimitArgs{
+			// 		Characteristics: pulumi.StringArray{
+			// 			pulumi.String("ip.src"),
+			// 			// Mandatory characteristic for all rate limiting rules to
+			// 			// ensure counters are not shared across data centers
+			// 			pulumi.String("cf.colo.id"),
+			// 		},
+			// 		Period:            pulumi.Int(60),  // 1 minute
+			// 		RequestsPerPeriod: pulumi.Int(30),  // 30 requests per minute for APIs
+			// 		MitigationTimeout: pulumi.Int(300), // 5 minute timeout
+			// 	},
+			// 	Enabled: pulumi.Bool(true),
+			// },
 
 			// Challenge-based rate limiting for login endpoints
-			&cloudflare.RulesetRuleArgs{
-				Action:      pulumi.String("managed_challenge"),
-				Expression:  pulumi.String(`(http.request.uri.path matches "\/[login|signin|auth]+$")`),
-				Description: pulumi.String("Challenge-based protection for authentication endpoints"),
-				Ratelimit: &cloudflare.RulesetRuleRatelimitArgs{
-					Characteristics: pulumi.StringArray{
-						pulumi.String("ip.src"),
-						// Mandatory characteristic for all rate limiting rules to
-						// ensure counters are not shared across data centers
-						pulumi.String("cf.colo.id"),
-					},
-					// TODO make me configurable
-					Period:            pulumi.Int(300), // 5 minutes
-					RequestsPerPeriod: pulumi.Int(5),   // 5 login attempts per 5 minutes
-					MitigationTimeout: pulumi.Int(900), // 15 minute timeout
-				},
-				Enabled: pulumi.Bool(true),
-			},
+			// &cloudflare.RulesetRuleArgs{
+			// 	Action:      pulumi.String("managed_challenge"),
+			// 	Expression:  pulumi.String(`(http.request.uri.path matches "\/[login|signin|auth]+$")`),
+			// 	Description: pulumi.String("Challenge-based protection for authentication endpoints"),
+			// 	Ratelimit: &cloudflare.RulesetRuleRatelimitArgs{
+			// 		Characteristics: pulumi.StringArray{
+			// 			pulumi.String("ip.src"),
+			// 			// Mandatory characteristic for all rate limiting rules to
+			// 			// ensure counters are not shared across data centers
+			// 			pulumi.String("cf.colo.id"),
+			// 		},
+			// 		Period:            pulumi.Int(300), // 5 minutes
+			// 		RequestsPerPeriod: pulumi.Int(5),   // 5 login attempts per 5 minutes
+			// 		MitigationTimeout: pulumi.Int(900), // 15 minute timeout
+			// 	},
+			// 	Enabled: pulumi.Bool(true),
+			// },
 		},
 	}, pulumi.Parent(e))
 	if err != nil {

@@ -491,7 +491,7 @@ func TestNewEdgeProtection_RateLimitRuleset(t *testing.T) {
 		assert.Equal(t, "http_ratelimit", <-phaseCh)
 
 		rateLimitRuleset.Rules.ApplyT(func(rules []cloudflare.RulesetRule) error {
-			assert.Len(t, rules, 3, "Rate limit ruleset should have 3 rules")
+			assert.Len(t, rules, 1, "Rate limit ruleset should have 1 rule under the free tier")
 			return nil
 		})
 
