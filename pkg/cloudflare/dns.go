@@ -11,7 +11,7 @@ import (
 // createZone creates a Cloudflare DNS Zone with free tier plan.
 func (e *EdgeProtection) createZone(ctx *pulumi.Context) (*cloudflare.Zone, error) {
 	// Extract mydomain.com from my-app.mydomain.com
-	zoneDomainURL := e.Domain[strings.Index(e.Domain, "."):]
+	zoneDomainURL := e.Domain[strings.Index(e.Domain, ".")+1:]
 
 	zone, err := cloudflare.NewZone(ctx, e.newResourceName("zone", "dns", 64), &cloudflare.ZoneArgs{
 		Account: cloudflare.ZoneAccountArgs{
@@ -20,7 +20,10 @@ func (e *EdgeProtection) createZone(ctx *pulumi.Context) (*cloudflare.Zone, erro
 		Name: pulumi.String(zoneDomainURL),
 		// Full zone management. A partial setup with CNAMEs wouldn't be enough.
 		Type: pulumi.String("full"),
-	}, pulumi.Parent(e))
+	},
+		// TODO make configurable
+		pulumi.Protect(true),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Cloudflare DNS zone: %w", err)
 	}
