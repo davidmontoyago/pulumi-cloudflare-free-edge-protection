@@ -35,20 +35,20 @@ type EdgeProtection struct {
 	name string
 
 	// Core resources
-	zone              *cloudflare.Zone
-	backendDNSRecord  *cloudflare.DnsRecord
-	frontendDNSRecord *cloudflare.DnsRecord
-	rootDNSRecord     *cloudflare.DnsRecord
-	zoneSettings      []*cloudflare.ZoneSetting
-	rateLimitRuleset  *cloudflare.Ruleset
-	ddosL4Ruleset     *cloudflare.Ruleset
-	ddosL7Ruleset     *cloudflare.Ruleset
-	wafManagedRuleset *cloudflare.Ruleset
-	wafCustomRuleset  *cloudflare.Ruleset
-	cacheRuleset      *cloudflare.Ruleset
-	redirectRuleset   *cloudflare.Ruleset
-	configRuleset     *cloudflare.Ruleset
-	rulesCount        pulumi.IntOutput
+	zone               *cloudflare.Zone
+	backendDNSRecord   *cloudflare.DnsRecord
+	frontendDNSRecord  *cloudflare.DnsRecord
+	rootDNSRecord      *cloudflare.DnsRecord
+	zoneSettings       []*cloudflare.ZoneSetting
+	rateLimitRuleset   *cloudflare.Ruleset
+	ddosL4Ruleset      *cloudflare.Ruleset
+	ddosL7Ruleset      *cloudflare.Ruleset
+	wafManagedRuleset  *cloudflare.Ruleset
+	wafCustomRuleset   *cloudflare.Ruleset
+	cacheRuleset       *cloudflare.Ruleset
+	redirectRuleset    *cloudflare.Ruleset
+	configRuleset      *cloudflare.Ruleset
+	freeTierRulesCount pulumi.IntOutput
 }
 
 // NewEdgeProtection creates a new EdgeProtection instance with the provided configuration.
@@ -110,15 +110,14 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		"cloudflare_backend_dns_record_id":  edgeProtection.backendDNSRecord.ID(),
 		"cloudflare_frontend_dns_record_id": edgeProtection.frontendDNSRecord.ID(),
 		// "cloudflare_root_dns_record_id":    edgeProtection.rootDNSRecord.ID(),
-		"cloudflare_rate_limit_ruleset_id":  edgeProtection.rateLimitRuleset.ID(),
-		"cloudflare_ddos_l4_ruleset_id":     edgeProtection.ddosL4Ruleset.ID(),
-		"cloudflare_ddos_l7_ruleset_id":     edgeProtection.ddosL7Ruleset.ID(),
-		"cloudflare_waf_managed_ruleset_id": edgeProtection.wafManagedRuleset.ID(),
-		"cloudflare_waf_custom_ruleset_id":  edgeProtection.wafCustomRuleset.ID(),
-		"cloudflare_cache_ruleset_id":       edgeProtection.cacheRuleset.ID(),
-		"cloudflare_redirect_ruleset_id":    edgeProtection.redirectRuleset.ID(),
-		"cloudflare_config_ruleset_id":      edgeProtection.configRuleset.ID(),
-		"cloudflare_ruleset_rules_count":    edgeProtection.rulesCount,
+		"cloudflare_rate_limit_ruleset_id": edgeProtection.rateLimitRuleset.ID(),
+		"cloudflare_ddos_l4_ruleset_id":    edgeProtection.ddosL4Ruleset.ID(),
+		"cloudflare_ddos_l7_ruleset_id":    edgeProtection.ddosL7Ruleset.ID(),
+		"cloudflare_waf_custom_ruleset_id": edgeProtection.wafCustomRuleset.ID(),
+		"cloudflare_cache_ruleset_id":      edgeProtection.cacheRuleset.ID(),
+		"cloudflare_redirect_ruleset_id":   edgeProtection.redirectRuleset.ID(),
+		"cloudflare_config_ruleset_id":     edgeProtection.configRuleset.ID(),
+		"cloudflare_ruleset_rules_count":   edgeProtection.freeTierRulesCount,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to register resource outputs: %w", err)
@@ -187,19 +186,18 @@ func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 	e.redirectRuleset = redirectRuleset
 	e.configRuleset = configRuleset
 
-	// Count total number of rules
+	// Count total number of free-tier rules
 	pulumi.All(
 		cacheRuleset.Rules,
 		redirectRuleset.Rules,
 		configRuleset.Rules,
-		wafManagedRuleset.Rules,
 		wafCustomRuleset.Rules,
 		ddosL4Ruleset.Rules,
 		ddosL7Ruleset.Rules,
 		rateLimitRuleset.Rules,
 	).ApplyT(func(rules []interface{}) error {
-		allRules := flattenRulesetRules(rules)
-		e.rulesCount = pulumi.Int(len(allRules)).ToIntOutput()
+		freeRules := flattenRulesetRules(rules)
+		e.freeTierRulesCount = pulumi.Int(len(freeRules)).ToIntOutput()
 		return nil
 	})
 

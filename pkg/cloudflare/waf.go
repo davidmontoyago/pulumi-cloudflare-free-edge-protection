@@ -19,43 +19,10 @@ const (
 // createWAFManagedRules deploys Cloudflare's managed security rulesets
 // for firewall, best-practice OWASP core, and exposed credentials protection.
 //
-// Uses 3 rules of the 70 under the free tier.
+// Not included under the free tier.
 func (e *EdgeProtection) createWAFManagedRules(ctx *pulumi.Context, zone *cloudflare.Zone) (*cloudflare.Ruleset, error) {
-	rules := cloudflare.RulesetRuleArray{
-		&cloudflare.RulesetRuleArgs{
-			Action:      pulumi.String("execute"),
-			Expression:  pulumi.String("true"),
-			Description: pulumi.String("Execute Cloudflare Managed Ruleset"),
-			ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
-				Id: pulumi.String(cloudflareManagedRulesetID),
-
-				Overrides: &cloudflare.RulesetRuleActionParametersOverridesArgs{
-					Action: pulumi.String("managed_challenge"),
-				},
-			},
-			Enabled: pulumi.Bool(true),
-		},
-		&cloudflare.RulesetRuleArgs{
-			Action:      pulumi.String("execute"),
-			Expression:  pulumi.String("true"),
-			Description: pulumi.String("Check for exposed credentials in requests"),
-			ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
-				Id: pulumi.String(cloudflareExposedCredentialsRulesetID),
-			},
-			Enabled: pulumi.Bool(true),
-		},
-	}
-
-	if !e.EnableFreeTier {
-		rules = append(rules, &cloudflare.RulesetRuleArgs{
-			Action:      pulumi.String("execute"),
-			Expression:  pulumi.String("true"),
-			Description: pulumi.String("Execute OWASP Core Ruleset for common web attacks"),
-			ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
-				Id: pulumi.String(cloudflareOWASPManagedRulesetID),
-			},
-			Enabled: pulumi.Bool(true),
-		})
+	if e.EnableFreeTier {
+		return nil, nil
 	}
 
 	wafManagedRuleset, err := cloudflare.NewRuleset(ctx, e.newResourceName("managed-ruleset", "waf", 64), &cloudflare.RulesetArgs{
@@ -64,7 +31,38 @@ func (e *EdgeProtection) createWAFManagedRules(ctx *pulumi.Context, zone *cloudf
 		Kind:        pulumi.String("zone"),
 		Phase:       pulumi.String("http_request_firewall_managed"),
 		Description: pulumi.String("Deploy Cloudflare managed security rulesets"),
-		Rules:       rules,
+		Rules: cloudflare.RulesetRuleArray{
+			&cloudflare.RulesetRuleArgs{
+				Action:      pulumi.String("execute"),
+				Expression:  pulumi.String("true"),
+				Description: pulumi.String("Execute Cloudflare Managed Ruleset"),
+				ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
+					Id: pulumi.String(cloudflareManagedRulesetID),
+					Overrides: &cloudflare.RulesetRuleActionParametersOverridesArgs{
+						Action: pulumi.String("managed_challenge"),
+					},
+				},
+				Enabled: pulumi.Bool(true),
+			},
+			&cloudflare.RulesetRuleArgs{
+				Action:      pulumi.String("execute"),
+				Expression:  pulumi.String("true"),
+				Description: pulumi.String("Execute OWASP Core Ruleset for common web attacks"),
+				ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
+					Id: pulumi.String(cloudflareOWASPManagedRulesetID),
+				},
+				Enabled: pulumi.Bool(true),
+			},
+			&cloudflare.RulesetRuleArgs{
+				Action:      pulumi.String("execute"),
+				Expression:  pulumi.String("true"),
+				Description: pulumi.String("Check for exposed credentials in requests"),
+				ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
+					Id: pulumi.String(cloudflareExposedCredentialsRulesetID),
+				},
+				Enabled: pulumi.Bool(true),
+			},
+		},
 	}, pulumi.Parent(e))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create WAF managed ruleset: %w", err)
