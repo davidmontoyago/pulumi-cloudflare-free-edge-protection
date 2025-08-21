@@ -16,6 +16,7 @@ type EdgeProtection struct {
 	BackendURL               pulumi.StringOutput
 	FrontendURL              pulumi.StringOutput
 	CloudflareAccountID      string
+	EnableFreeTier           bool
 	SecurityLevel            pulumi.StringOutput
 	BrowserCacheTTL          pulumi.IntOutput
 	EdgeCacheTTLSeconds      pulumi.IntOutput
@@ -70,12 +71,13 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		BackendURL:               args.BackendURL.ToStringOutput(),
 		FrontendURL:              args.FrontendURL.ToStringOutput(),
 		CloudflareAccountID:      args.CloudflareAccountID,
+		EnableFreeTier:           args.EnableFreeTier,
 		SecurityLevel:            setDefaultString(args.SecurityLevel, "medium"),
-		BrowserCacheTTL:          setDefaultInt(args.BrowserCacheTTL, 14400),       // 4 hours
-		EdgeCacheTTLSeconds:      setDefaultInt(args.EdgeCacheTTLSeconds, 2419200), // 28 days
-		RateLimitPeriodSeconds:   setDefaultInt(nil, 10),                           // Free tier requires 10 seconds
-		MitigationTimeoutSeconds: setDefaultInt(nil, 10),                           // Free tier requires 10 seconds
-		RateLimitThreshold:       setDefaultInt(args.RateLimitThreshold, 60),       // 60 requests per 10s period
+		BrowserCacheTTL:          setDefaultInt(args.BrowserCacheTTL, 14400),                // 4 hours
+		EdgeCacheTTLSeconds:      setDefaultInt(args.EdgeCacheTTLSeconds, 2419200),          // 28 days
+		RateLimitPeriodSeconds:   setDefaultInt(args.RateLimitPeriodSeconds, 10),            // Free tier requires 10 seconds
+		MitigationTimeoutSeconds: setDefaultInt(args.RateLimitMitigationTimeoutSeconds, 10), // Free tier requires 10 seconds
+		RateLimitThreshold:       setDefaultInt(args.RateLimitThreshold, 60),                // 60 requests per 10s period
 		RateLimitMode:            setDefaultString(args.RateLimitMode, "block"),
 		TLSEncryptionMode:        setDefaultString(args.TLSEncryptionMode, "strict"),
 		MinTLSVersion:            setDefaultString(args.MinTLSVersion, "1.2"),
@@ -100,6 +102,7 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 	}
 
 	err = ctx.RegisterResourceOutputs(edgeProtection, pulumi.Map{
+		"cloudflare_free_tier_enabled":      pulumi.Bool(edgeProtection.EnableFreeTier),
 		"cloudflare_zone_id":                edgeProtection.zone.ID(),
 		"cloudflare_zone_name":              edgeProtection.zone.Name,
 		"cloudflare_zone_status":            edgeProtection.zone.Status,
