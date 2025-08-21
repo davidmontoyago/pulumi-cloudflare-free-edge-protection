@@ -81,18 +81,16 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 	}
 
 	// 6. Automatic universal certificates for all domains.
+	// Automatic, no configuration needed. Ensure domain is added to Cloudflare
+	// and it will automatically get Universal certs.
+	//
 	// Automatically provisioned certs covers:
 	// - Zone apex (e.g., example.com)
 	// - All first-level subdomains (e.g., subdomain.example.com)
+	//
 	// Cloudflare chooses the certificate authority (CA) and it can change anytime.
-	universalCertsSetting, err := cloudflare.NewZoneSetting(ctx, e.newResourceName("universal-certs", "tls", 64), &cloudflare.ZoneSettingArgs{
-		ZoneId:    zone.ID(),
-		SettingId: pulumi.String("universal_ssl"),
-		Value:     pulumi.String("on"), // Usually always "on"
-	}, pulumi.Parent(e))
-	if err != nil {
-		return nil, fmt.Errorf("failed to configure Universal SSL: %w", err)
-	}
+	// See:
+	// - https://developers.cloudflare.com/ssl/edge-certificates/universal-ssl/enable-universal-ssl/
 
 	return []*cloudflare.ZoneSetting{
 		sslModeSetting,
@@ -100,6 +98,5 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 		tls13Setting,
 		alwaysHTTPSSetting,
 		httpsRewritesSetting,
-		universalCertsSetting,
 	}, nil
 }

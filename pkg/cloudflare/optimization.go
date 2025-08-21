@@ -35,8 +35,6 @@ func (e *EdgeProtection) createOptimizationRules(ctx *pulumi.Context, zone *clou
 // - set security level
 // - enable browser integrity check
 //
-// Uses 2 rules of the 70 under the free tier.
-//
 // See: https://developers.cloudflare.com/rules/configuration-rules/
 func (e *EdgeProtection) createConfigurationRules(ctx *pulumi.Context, zone *cloudflare.Zone) (*cloudflare.Ruleset, error) {
 
