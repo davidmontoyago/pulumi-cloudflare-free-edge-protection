@@ -7,13 +7,19 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-// configureSSLSettings configures SSL/TLS settings for the zone.
-func (e *EdgeProtection) configureSSLSettings(ctx *pulumi.Context, zone *cloudflare.Zone) ([]*cloudflare.ZoneSetting, error) {
+// configureTLSSettings configures SSL/TLS settings for the zone.
+func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudflare.Zone) ([]*cloudflare.ZoneSetting, error) {
 	// 1. SSL/TLS Encryption Mode
+	// There are edge certificates and origin certificates.
+	// Edge certs are between the browser and Cloudflare proxies. These are automatically provisioned.
+	// Origin certs are between Cloudflare and the app.
+	// See:
+	// - https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/
+	// - https://developers.cloudflare.com/ssl/concepts/#ssltls-certificate
 	sslModeSetting, err := cloudflare.NewZoneSetting(ctx, e.newResourceName("ssl-mode", "tls", 64), &cloudflare.ZoneSettingArgs{
 		ZoneId:    zone.ID(),
 		SettingId: pulumi.String("ssl"), // Setting name for encryption mode
-		Value:     e.SSLMode,            // "off", "flexible", "full", "strict"
+		Value:     e.TLSEncryptionMode,  // "off", "flexible", "full", "strict"
 	}, pulumi.Parent(e))
 	if err != nil {
 		return nil, fmt.Errorf("failed to configure SSL mode: %w", err)
@@ -74,8 +80,12 @@ func (e *EdgeProtection) configureSSLSettings(ctx *pulumi.Context, zone *cloudfl
 		return nil, fmt.Errorf("failed to configure Automatic HTTPS Rewrites: %w", err)
 	}
 
-	// 6. Universal SSL (if you need to manage it explicitly)
-	universalSSLSetting, err := cloudflare.NewZoneSetting(ctx, e.newResourceName("universal-ssl", "tls", 64), &cloudflare.ZoneSettingArgs{
+	// 6. Automatic universal certificates for all domains.
+	// Automatically provisioned certs covers:
+	// - Zone apex (e.g., example.com)
+	// - All first-level subdomains (e.g., subdomain.example.com)
+	// Cloudflare chooses the certificate authority (CA) and it can change anytime.
+	universalCertsSetting, err := cloudflare.NewZoneSetting(ctx, e.newResourceName("universal-certs", "tls", 64), &cloudflare.ZoneSettingArgs{
 		ZoneId:    zone.ID(),
 		SettingId: pulumi.String("universal_ssl"),
 		Value:     pulumi.String("on"), // Usually always "on"
@@ -90,6 +100,6 @@ func (e *EdgeProtection) configureSSLSettings(ctx *pulumi.Context, zone *cloudfl
 		tls13Setting,
 		alwaysHTTPSSetting,
 		httpsRewritesSetting,
-		universalSSLSetting,
+		universalCertsSetting,
 	}, nil
 }

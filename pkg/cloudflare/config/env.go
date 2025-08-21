@@ -25,7 +25,7 @@ type Config struct {
 	RateLimitPeriod     int    `envconfig:"RATE_LIMIT_PERIOD" default:"60"`
 	RateLimitTimeout    int    `envconfig:"RATE_LIMIT_TIMEOUT" default:"600"`
 	RateLimitMode       string `envconfig:"RATE_LIMIT_MODE" default:"block"`
-	SSLMode             string `envconfig:"SSL_MODE" default:"full"`
+	TLSEncryptionMode   string `envconfig:"SSL_MODE" default:"strict"`
 	MinTLSVersion       string `envconfig:"MIN_TLS_VERSION" default:"1.2"`
 	AlwaysUseHTTPS      bool   `envconfig:"ALWAYS_USE_HTTPS" default:"true"`
 	TLS13Enabled        bool   `envconfig:"TLS_13_ENABLED" default:"true"`
@@ -55,7 +55,7 @@ func LoadConfig() (*Config, error) {
 	log.Printf("  Rate Limit Period: %d seconds", config.RateLimitPeriod)
 	log.Printf("  Rate Limit Timeout: %d seconds", config.RateLimitTimeout)
 	log.Printf("  Rate Limit Mode: %s", config.RateLimitMode)
-	log.Printf("  SSL Mode: %s", config.SSLMode)
+	log.Printf("  SSL Mode: %s", config.TLSEncryptionMode)
 	log.Printf("  Min TLS Version: %s", config.MinTLSVersion)
 	log.Printf("  Always Use HTTPS: %t", config.AlwaysUseHTTPS)
 	log.Printf("  TLS 1.3 Enabled: %t", config.TLS13Enabled)
@@ -79,7 +79,7 @@ func (c *Config) ToEdgeProtectionArgs() *cloudflare.EdgeProtectionArgs {
 		RateLimitPeriod:     pulumi.Int(c.RateLimitPeriod),
 		RateLimitTimeout:    pulumi.Int(c.RateLimitTimeout),
 		RateLimitMode:       pulumi.String(c.RateLimitMode),
-		SSLMode:             pulumi.String(c.SSLMode),
+		TLSEncryptionMode:   pulumi.String(c.TLSEncryptionMode),
 		MinTLSVersion:       pulumi.String(c.MinTLSVersion),
 		AlwaysUseHTTPS:      pulumi.Bool(c.AlwaysUseHTTPS),
 		TLS13Enabled:        pulumi.Bool(c.TLS13Enabled),

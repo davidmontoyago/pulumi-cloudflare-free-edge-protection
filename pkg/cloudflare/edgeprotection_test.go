@@ -95,7 +95,7 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 			RateLimitPeriod:     pulumi.Int(60),
 			RateLimitTimeout:    pulumi.Int(600),
 			RateLimitMode:       pulumi.String("managed_challenge"),
-			SSLMode:             pulumi.String("full"),
+			TLSEncryptionMode:   pulumi.String("full"),
 			MinTLSVersion:       pulumi.String("1.2"),
 			AlwaysUseHTTPS:      pulumi.Bool(true),
 			TLS13Enabled:        pulumi.Bool(true),
@@ -168,13 +168,13 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 		assert.Equal(t, 60, <-rateLimitThresholdCh, "Rate limit threshold should match")
 
 		// Verify SSL mode
-		sslModeCh := make(chan string, 1)
-		defer close(sslModeCh)
-		edgeProtection.SSLMode.ApplyT(func(mode string) error {
-			sslModeCh <- mode
+		tlsModeCh := make(chan string, 1)
+		defer close(tlsModeCh)
+		edgeProtection.TLSEncryptionMode.ApplyT(func(mode string) error {
+			tlsModeCh <- mode
 			return nil
 		})
-		assert.Equal(t, "full", <-sslModeCh, "SSL mode should match")
+		assert.Equal(t, "full", <-tlsModeCh, "SSL mode should match")
 
 		// Verify zone
 		zone := edgeProtection.GetZone()
@@ -321,15 +321,15 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 			rateLimitModeCh <- mode
 			return nil
 		})
-		assert.Equal(t, "simulate", <-rateLimitModeCh, "Rate limit mode should default to 'simulate'")
+		assert.Equal(t, "block", <-rateLimitModeCh, "Rate limit mode should default to 'block'")
 
-		sslModeCh := make(chan string, 1)
-		defer close(sslModeCh)
-		edgeProtection.SSLMode.ApplyT(func(mode string) error {
-			sslModeCh <- mode
+		tlsModeCh := make(chan string, 1)
+		defer close(tlsModeCh)
+		edgeProtection.TLSEncryptionMode.ApplyT(func(mode string) error {
+			tlsModeCh <- mode
 			return nil
 		})
-		assert.Equal(t, "full", <-sslModeCh, "SSL mode should default to 'full'")
+		assert.Equal(t, "strict", <-tlsModeCh, "SSL mode should default to 'strict'")
 
 		minTLSVersionCh := make(chan string, 1)
 		defer close(minTLSVersionCh)

@@ -32,9 +32,9 @@ type EdgeProtectionArgs struct {
 	// Rate limit action mode (optional, defaults to "block")
 	// Valid values: "managed_challenge", "block", "challenge", "js_challenge"
 	RateLimitMode pulumi.StringInput
-	// SSL mode for the zone (optional, defaults to "full")
+	// TLS Encryption Mode for the zone (optional, defaults to "strict")
 	// Valid values: "off", "flexible", "full", "strict"
-	SSLMode pulumi.StringInput
+	TLSEncryptionMode pulumi.StringInput
 	// Minimum TLS version (optional, defaults to "1.2")
 	// Valid values: "1.0", "1.1", "1.2", "1.3"
 	MinTLSVersion pulumi.StringInput

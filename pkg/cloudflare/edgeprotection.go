@@ -23,7 +23,7 @@ type EdgeProtection struct {
 	RateLimitPeriod     pulumi.IntOutput
 	RateLimitTimeout    pulumi.IntOutput
 	RateLimitMode       pulumi.StringOutput
-	SSLMode             pulumi.StringOutput
+	TLSEncryptionMode   pulumi.StringOutput
 	MinTLSVersion       pulumi.StringOutput
 	AlwaysUseHTTPS      pulumi.BoolOutput
 	TLS13Enabled        pulumi.BoolOutput
@@ -77,7 +77,7 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		RateLimitPeriod:     setDefaultInt(args.RateLimitPeriod, 60),          // 60 seconds
 		RateLimitTimeout:    setDefaultInt(args.RateLimitTimeout, 600),        // 10 minutes
 		RateLimitMode:       setDefaultString(args.RateLimitMode, "block"),
-		SSLMode:             setDefaultString(args.SSLMode, "full"),
+		TLSEncryptionMode:   setDefaultString(args.TLSEncryptionMode, "strict"),
 		MinTLSVersion:       setDefaultString(args.MinTLSVersion, "1.2"),
 		AlwaysUseHTTPS:      setDefaultBool(args.AlwaysUseHTTPS, true),
 		TLS13Enabled:        setDefaultBool(args.TLS13Enabled, true),
@@ -140,9 +140,9 @@ func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 	}
 
 	// 3. Configure SSL/TLS settings
-	zoneSettings, err := e.configureSSLSettings(ctx, zone)
+	zoneSettings, err := e.configureTLSSettings(ctx, zone)
 	if err != nil {
-		return fmt.Errorf("failed to configure SSL settings: %w", err)
+		return fmt.Errorf("failed to configure TLS settings: %w", err)
 	}
 	e.zoneSettings = zoneSettings
 
