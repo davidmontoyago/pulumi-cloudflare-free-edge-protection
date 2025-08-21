@@ -76,6 +76,7 @@ func (e *EdgeProtection) createWAFManagedRules(ctx *pulumi.Context, zone *cloudf
 // createWAFCustomRules creates custom WAF rules for apps to customize to their needs.
 //
 // Uses 5 free WAF rules.
+// Operator "matches" for expressions is reserved for Business plan and WAF Advanced plan.
 func (e *EdgeProtection) createWAFCustomRules(ctx *pulumi.Context, zone *cloudflare.Zone) (*cloudflare.Ruleset, error) {
 	wafCustomRuleset, err := cloudflare.NewRuleset(ctx, e.newResourceName("waf-custom-ruleset", "security", 64), &cloudflare.RulesetArgs{
 		ZoneId:      zone.ID(),
@@ -87,16 +88,32 @@ func (e *EdgeProtection) createWAFCustomRules(ctx *pulumi.Context, zone *cloudfl
 			// Rule 1: Block common CMS attack patterns (WordPress, etc.)
 			// TODO add more paths and extensions
 			&cloudflare.RulesetRuleArgs{
-				Action:      pulumi.String("block"),
-				Expression:  pulumi.String(`(http.request.uri.path matches "\/[wp\-admin|wp\-login.php|xmlrpc.php|\.env|phpmyadmin|config.php|wp\-config.php]*$")`),
+				Action: pulumi.String("block"),
+				Expression: pulumi.Sprintf("(%s)", strings.Join([]string{
+					`(http.request.uri.path contains "/wp-admin")`,
+					`(http.request.uri.path contains "/wp-login.php")`,
+					`(http.request.uri.path contains "/xmlrpc.php")`,
+					`(http.request.uri.path contains "/.env")`,
+					`(http.request.uri.path contains "/phpmyadmin")`,
+					`(http.request.uri.path contains "/config.php")`,
+					`(http.request.uri.path contains "/wp-config.php")`,
+				}, " or ")),
 				Description: pulumi.String("Block common CMS and config file access attempts"),
 				Enabled:     pulumi.Bool(true),
 			},
 
 			// Rule 2: Block malicious user agents and tools
 			&cloudflare.RulesetRuleArgs{
-				Action:      pulumi.String("block"),
-				Expression:  pulumi.String(`(http.user_agent matches "\/[sqlmap|nmap|nikto|masscan|dirbuster]*$") or (http.user_agent eq "") or (len(http.user_agent) < 10)`),
+				Action: pulumi.String("block"),
+				Expression: pulumi.Sprintf("(%s)", strings.Join([]string{
+					`(http.user_agent contains "sqlmap")`,
+					`(http.user_agent contains "nmap")`,
+					`(http.user_agent contains "nikto")`,
+					`(http.user_agent contains "masscan")`,
+					`(http.user_agent contains "dirbuster")`,
+					`(http.user_agent eq "")`,
+					`(len(http.user_agent) < 10)`,
+				}, " or ")),
 				Description: pulumi.String("Block malicious scanners and empty user agents"),
 				Enabled:     pulumi.Bool(true),
 			},
@@ -129,13 +146,19 @@ func (e *EdgeProtection) createWAFCustomRules(ctx *pulumi.Context, zone *cloudfl
 			&cloudflare.RulesetRuleArgs{
 				Action: pulumi.String("block"),
 				Expression: pulumi.Sprintf("(%s)", strings.Join([]string{
-					`http.request.uri.path matches ".*\\.(bak|backup|old|orig|tmp|temp|log)$")`,
+					`(http.request.uri.path contains ".bak")`,
+					`(http.request.uri.path contains ".backup")`,
+					`(http.request.uri.path contains ".old")`,
+					`(http.request.uri.path contains ".orig")`,
+					`(http.request.uri.path contains ".tmp")`,
+					`(http.request.uri.path contains ".temp")`,
+					`(http.request.uri.path contains ".log")`,
 					`(http.request.uri.path contains "/admin")`,
 					`(http.request.uri.path contains "/administrator")`,
 					`(http.request.uri.path contains "/.git")`,
 					`(http.request.uri.path contains "/.svn")`,
 					`(http.request.uri.path contains "/server-status")`,
-					`(http.request.uri.path contains "/server-info"`,
+					`(http.request.uri.path contains "/server-info")`,
 				}, " or ")),
 				Description: pulumi.String("Block access to sensitive files and admin paths"),
 				Enabled:     pulumi.Bool(true),
