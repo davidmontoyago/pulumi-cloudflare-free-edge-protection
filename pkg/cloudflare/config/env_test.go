@@ -4,7 +4,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -15,7 +14,7 @@ const (
 	testCloudflareAPIToken  = "test-cloudflare-api-token-123"
 	testDomain              = "myapp.path2prod.dev"
 	testBackendURL          = "backend-service-abc123-uc.a.run.app"
-	testFrontendURL         = "frontend-service-def456-uc.a.run.app"
+	testBackendUpstreamURL  = "ghs.googlehosted.com"
 	testCloudflareAccountID = "test-cloudflare-account-id-123"
 )
 
@@ -24,13 +23,12 @@ func TestLoadConfig_HappyPath(t *testing.T) {
 	envVars := map[string]string{
 		"CLOUDFLARE_API_TOKEN":  testCloudflareAPIToken,
 		"CLOUDFLARE_ACCOUNT_ID": testCloudflareAccountID,
-		"DOMAIN":                testDomain,
-		"BACKEND_URL":           testBackendURL,
-		"FRONTEND_URL":          testFrontendURL,
+		"BACKEND_URL":           testDomain,
+		"BACKEND_UPSTREAM_URL":  testBackendUpstreamURL,
 		"SECURITY_LEVEL":        "high",
 		"CACHE_LEVEL":           "basic",
 		"BROWSER_CACHE_TTL":     "7200",
-		"EDGE_CACHE_TTL":        "1296000",
+		"EDGE_CACHE_TTL_SECONDS": "1296000",
 		"RATE_LIMIT_THRESHOLD":  "100",
 		"RATE_LIMIT_PERIOD":     "120",
 		"RATE_LIMIT_TIMEOUT":    "300",
@@ -62,12 +60,11 @@ func TestLoadConfig_HappyPath(t *testing.T) {
 
 	// Verify all configuration values
 	assert.Equal(t, testCloudflareAPIToken, config.CloudflareAPIToken)
-	assert.Equal(t, testDomain, config.Domain)
-	assert.Equal(t, testBackendURL, config.BackendURL)
-	assert.Equal(t, testFrontendURL, config.FrontendURL)
+	assert.Equal(t, testDomain, config.BackendURL)
+	assert.Equal(t, testBackendUpstreamURL, config.BackendUpstreamURL)
 	assert.Equal(t, "high", config.SecurityLevel)
 	assert.Equal(t, 7200, config.BrowserCacheTTL)
-	assert.Equal(t, 2419200, config.EdgeCacheTTLSeconds)
+	assert.Equal(t, 1296000, config.EdgeCacheTTLSeconds)
 	assert.Equal(t, 100, config.RateLimitThreshold)
 	assert.Equal(t, "ban", config.RateLimitMode)
 	assert.Equal(t, "strict", config.TLSEncryptionMode)
@@ -83,9 +80,8 @@ func TestLoadConfig_WithDefaults(t *testing.T) {
 	envVars := map[string]string{
 		"CLOUDFLARE_API_TOKEN":  testCloudflareAPIToken,
 		"CLOUDFLARE_ACCOUNT_ID": testCloudflareAccountID,
-		"DOMAIN":                testDomain,
-		"BACKEND_URL":           testBackendURL,
-		"FRONTEND_URL":          testFrontendURL,
+		"BACKEND_URL":           testDomain,
+		"BACKEND_UPSTREAM_URL":  testBackendUpstreamURL,
 	}
 
 	// Set environment variables
@@ -107,9 +103,8 @@ func TestLoadConfig_WithDefaults(t *testing.T) {
 
 	// Verify required values
 	assert.Equal(t, testCloudflareAPIToken, config.CloudflareAPIToken)
-	assert.Equal(t, testDomain, config.Domain)
-	assert.Equal(t, testBackendURL, config.BackendURL)
-	assert.Equal(t, testFrontendURL, config.FrontendURL)
+	assert.Equal(t, testDomain, config.BackendURL)
+	assert.Equal(t, testBackendUpstreamURL, config.BackendUpstreamURL)
 
 	// Verify default values
 	assert.Equal(t, "medium", config.SecurityLevel)
@@ -134,49 +129,35 @@ func TestLoadConfig_MissingRequiredFields(t *testing.T) {
 			name: "missing cloudflare api token",
 			envVars: map[string]string{
 				"CLOUDFLARE_ACCOUNT_ID": testCloudflareAccountID,
-				"DOMAIN":                testDomain,
-				"BACKEND_URL":           testBackendURL,
-				"FRONTEND_URL":          testFrontendURL,
+				"BACKEND_URL":           testDomain,
+				"BACKEND_UPSTREAM_URL":  testBackendUpstreamURL,
 			},
 			expectedErr: "CLOUDFLARE_API_TOKEN",
-		},
-		{
-			name: "missing domain",
-			envVars: map[string]string{
-				"CLOUDFLARE_API_TOKEN":  testCloudflareAPIToken,
-				"CLOUDFLARE_ACCOUNT_ID": testCloudflareAccountID,
-				"BACKEND_URL":           testBackendURL,
-				"FRONTEND_URL":          testFrontendURL,
-			},
-			expectedErr: "DOMAIN",
 		},
 		{
 			name: "missing backend url",
 			envVars: map[string]string{
 				"CLOUDFLARE_API_TOKEN":  testCloudflareAPIToken,
 				"CLOUDFLARE_ACCOUNT_ID": testCloudflareAccountID,
-				"DOMAIN":                testDomain,
-				"FRONTEND_URL":          testFrontendURL,
+				"BACKEND_UPSTREAM_URL":  testBackendUpstreamURL,
 			},
 			expectedErr: "BACKEND_URL",
 		},
 		{
-			name: "missing frontend url",
+			name: "missing backend upstream url",
 			envVars: map[string]string{
 				"CLOUDFLARE_API_TOKEN":  testCloudflareAPIToken,
 				"CLOUDFLARE_ACCOUNT_ID": testCloudflareAccountID,
-				"DOMAIN":                testDomain,
-				"BACKEND_URL":           testBackendURL,
+				"BACKEND_URL":           testDomain,
 			},
-			expectedErr: "FRONTEND_URL",
+			expectedErr: "BACKEND_UPSTREAM_URL",
 		},
 		{
 			name: "missing cloudflare account id",
 			envVars: map[string]string{
 				"CLOUDFLARE_API_TOKEN": testCloudflareAPIToken,
-				"DOMAIN":               testDomain,
-				"BACKEND_URL":          testBackendURL,
-				"FRONTEND_URL":         testFrontendURL,
+				"BACKEND_URL":          testDomain,
+				"BACKEND_UPSTREAM_URL": testBackendUpstreamURL,
 			},
 			expectedErr: "CLOUDFLARE_ACCOUNT_ID",
 		},
@@ -210,9 +191,8 @@ func TestToEdgeProtectionArgs(t *testing.T) {
 	envVars := map[string]string{
 		"CLOUDFLARE_API_TOKEN":  testCloudflareAPIToken,
 		"CLOUDFLARE_ACCOUNT_ID": testCloudflareAccountID,
-		"DOMAIN":                testDomain,
-		"BACKEND_URL":           testBackendURL,
-		"FRONTEND_URL":          testFrontendURL,
+		"BACKEND_URL":           testDomain,
+		"BACKEND_UPSTREAM_URL":  testBackendUpstreamURL,
 	}
 
 	// Set environment variables
@@ -236,9 +216,11 @@ func TestToEdgeProtectionArgs(t *testing.T) {
 	require.NotNil(t, args)
 
 	// Verify that all args are set correctly
-	assert.Equal(t, testDomain, args.Domain)
-	assert.Equal(t, pulumi.String(testBackendURL), args.BackendURL)
-	assert.Equal(t, pulumi.String(testFrontendURL), args.FrontendURL)
+	assert.Equal(t, testDomain, args.Upstreams[0].DomainURL)
+	assert.Equal(t, testBackendUpstreamURL, args.Upstreams[0].CanonicalNameURL)
+	assert.False(t, args.Upstreams[0].DisableProtection) // Should default to false
+	assert.Equal(t, testCloudflareAccountID, args.CloudflareZone.CloudflareAccountID)
+	assert.True(t, args.CloudflareZone.Protected) // Should default to true
 	assert.NotNil(t, args.SecurityLevel)
 	assert.NotNil(t, args.BrowserCacheTTL)
 	assert.NotNil(t, args.EdgeCacheTTLSeconds)

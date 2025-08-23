@@ -5,16 +5,46 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-// EdgeProtectionArgs contains configuration arguments for creating an EdgeProtection instance.
-type EdgeProtectionArgs struct {
-	// Domain for which edge protection will be configured (e.g., "myapp.path2prod.dev")
-	Domain string
-	// Backend URL of the Cloud Run service or other backend (e.g., "backend-service-abc123-uc.a.run.app")
-	BackendURL pulumi.StringInput
-	// Frontend URL of the Cloud Run service or other frontend (e.g., "frontend-service-def456-uc.a.run.app")
-	FrontendURL pulumi.StringInput
+// Upstream is a service that will be proxied through Cloudflare.
+type Upstream struct {
+	// Domain URL of the upstream service (e.g., "mybackend.path2prod.dev")
+	// Traffic bound to this URL will be proxied through Cloudflare to the CanonicalNameURL.
+	DomainURL string
+	// Canonical name URL of the upstream service (e.g., "backend-service-abc123-uc.a.run.app")
+	// Set to another cloud's DNS endpooint for cross-cloud domain integration.
+	// E.g.: In GCP, using Cloud Run's domain mapping this should be set to "ghs.googlehosted.com"
+	// to have GCP DNS servers resolve to an internal A record pointing to a cloud run instance.
+	// See: https://cloud.google.com/run/docs/mapping-custom-domains
+	CanonicalNameURL string
+	// DisableProtection is whether to disable Cloudflare proxy for CDN + DDoS protection.
+	// Defaults to false.
+	// For first time setup, set to true until the cross-cloud DNS is resolved
+	// (E.g. In GCP Doman Mapping shows success).
+	// See:
+	// - https://developers.cloudflare.com/dns/manage-dns-records/reference/dns-record-types/#proxied-cname-records
+	// - https://developers.cloudflare.com/dns/proxy-status/
+	DisableProtection bool
+}
+
+// CloudflareZone contains configuration for the zone to deploy the edge protection stack to.
+type CloudflareZone struct {
 	// Cloudflare Account ID. Required.
 	CloudflareAccountID string
+	// Whether to protect the zone from deletion.
+	// Set this to true if the zone was created via other Cloudflare means (e.g. via domain transfer).
+	// E.g. import the zone into state:
+	// > pulumi import "cloudflare:index/zone:Zone" "my-zone-dns" "<zone-id>"
+	// See: https://www.pulumi.com/docs/reference/pkg/cloudflare/zone/import/
+	Protected bool
+}
+
+// EdgeProtectionArgs contains configuration arguments for creating an EdgeProtection instance.
+type EdgeProtectionArgs struct {
+	// Upstreams to be protected by Cloudflare edge protection.
+	// A DNS record will be created for each upstream in the Cloudflare zone.
+	Upstreams []Upstream
+	// Configuration for the Cloudflare zone to deploy the edge protection stack to.
+	CloudflareZone CloudflareZone
 	// Whether to stay within the free tier limits (optional, defaults to false)
 	EnableFreeTier bool
 	// TODO link to docs

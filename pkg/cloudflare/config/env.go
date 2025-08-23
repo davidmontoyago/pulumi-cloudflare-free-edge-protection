@@ -11,13 +11,13 @@ import (
 	"github.com/davidmontoyago/pulumi-cloudflare-free-edge-protection/pkg/cloudflare"
 )
 
-// Config allows setting the cloudflare edge protection configuration via environment variables
+// Config is a helper for loading and launching via environment variables
+// Defaults to a single backend for the upstream.
 type Config struct {
 	CloudflareAPIToken  string `envconfig:"CLOUDFLARE_API_TOKEN" required:"true"`
 	CloudflareAccountID string `envconfig:"CLOUDFLARE_ACCOUNT_ID" required:"true"`
-	Domain              string `envconfig:"DOMAIN" required:"true"`
 	BackendURL          string `envconfig:"BACKEND_URL" required:"true"`
-	FrontendURL         string `envconfig:"FRONTEND_URL" required:"true"`
+	BackendUpstreamURL  string `envconfig:"BACKEND_UPSTREAM_URL" required:"true"`
 	SecurityLevel       string `envconfig:"SECURITY_LEVEL" default:"medium"`
 	BrowserCacheTTL     int    `envconfig:"BROWSER_CACHE_TTL" default:"14400"`
 	EdgeCacheTTLSeconds int    `envconfig:"EDGE_CACHE_TTL_SECONDS" default:"2419200"`
@@ -42,9 +42,8 @@ func LoadConfig() (*Config, error) {
 	}
 
 	log.Printf("Configuration loaded successfully:")
-	log.Printf("  Domain: %s", config.Domain)
 	log.Printf("  Backend URL: %s", config.BackendURL)
-	log.Printf("  Frontend URL: %s", config.FrontendURL)
+	log.Printf("  Backend Upstream URL: %s", config.BackendUpstreamURL)
 	log.Printf("  Security Level: %s", config.SecurityLevel)
 	log.Printf("  Rate Limit Mode: %s", config.RateLimitMode)
 	log.Printf("  Browser Cache TTL: %d seconds", config.BrowserCacheTTL)
@@ -64,10 +63,16 @@ func LoadConfig() (*Config, error) {
 // ToEdgeProtectionArgs converts the config to EdgeProtectionArgs for use with the Pulumi component
 func (c *Config) ToEdgeProtectionArgs() *cloudflare.EdgeProtectionArgs {
 	args := &cloudflare.EdgeProtectionArgs{
-		Domain:              c.Domain,
-		BackendURL:          pulumi.String(c.BackendURL),
-		FrontendURL:         pulumi.String(c.FrontendURL),
-		CloudflareAccountID: c.CloudflareAccountID,
+		Upstreams: []cloudflare.Upstream{
+			{
+				DomainURL:        c.BackendURL,
+				CanonicalNameURL: c.BackendUpstreamURL,
+			},
+		},
+		CloudflareZone: cloudflare.CloudflareZone{
+			CloudflareAccountID: c.CloudflareAccountID,
+			Protected:           true,
+		},
 		SecurityLevel:       pulumi.String(c.SecurityLevel),
 		BrowserCacheTTL:     pulumi.Int(c.BrowserCacheTTL),
 		EdgeCacheTTLSeconds: pulumi.Int(c.EdgeCacheTTLSeconds),

@@ -9,39 +9,29 @@ import (
 )
 
 // createRedirectRules creates modern redirect rules (replaces legacy HTTPS page rule)
-//
-// Uses 3 rules of the 70 under the free tier.
 func (e *EdgeProtection) createRedirectRules(ctx *pulumi.Context, zone *cloudflare.Zone) (*cloudflare.Ruleset, error) {
-
-	// See: https://developers.cloudflare.com/rules/url-forwarding/
-	redirectRuleset, err := cloudflare.NewRuleset(ctx, e.newResourceName("redirect-ruleset", "optimization", 64), &cloudflare.RulesetArgs{
-		ZoneId:      zone.ID(),
-		Name:        pulumi.String("HTTPS Redirect Rules"),
-		Kind:        pulumi.String("zone"),
-		Phase:       pulumi.String("http_request_dynamic_redirect"),
-		Description: pulumi.String("Force HTTPS and handle redirects"),
-		Rules: cloudflare.RulesetRuleArray{
-
-			// Redirect www to root
-			// See: https://developers.cloudflare.com/rules/url-forwarding/examples/redirect-www-to-root/
+	rules := cloudflare.RulesetRuleArray{}
+	for _, upstream := range e.Upstreams {
+		rules = append(rules,
 			&cloudflare.RulesetRuleArgs{
+				// Redirect www to root
+				// See: https://developers.cloudflare.com/rules/url-forwarding/examples/redirect-www-to-root/
 				Action:      pulumi.String("redirect"),
-				Expression:  pulumi.Sprintf(`http.host eq "www.%s"`, e.Domain),
-				Description: pulumi.Sprintf("Redirect www.%s to %s domain", e.Domain, e.Domain),
+				Expression:  pulumi.Sprintf(`http.host eq "www.%s"`, upstream.DomainURL),
+				Description: pulumi.Sprintf("Redirect www.%s to %s domain", upstream.DomainURL, upstream.DomainURL),
 				ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
 					FromValue: &cloudflare.RulesetRuleActionParametersFromValueArgs{
 						PreserveQueryString: pulumi.Bool(true),
 						StatusCode:          pulumi.Float64(301),
 						TargetUrl: &cloudflare.RulesetRuleActionParametersFromValueTargetUrlArgs{
-							Value: pulumi.Sprintf(`https://%s${request.uri}`, e.Domain),
+							Value: pulumi.Sprintf(`https://%s${request.uri}`, upstream.DomainURL),
 						},
 					},
 				},
 				Enabled: pulumi.Bool(true),
 			},
-
-			// Redirect trailing slashes for SEO
 			&cloudflare.RulesetRuleArgs{
+				// Redirect trailing slashes for SEO
 				Action: pulumi.String("redirect"),
 				Expression: pulumi.Sprintf("(%s)", strings.Join([]string{
 					`ends_with(http.request.uri.path, "/")`,             // Ends with /
@@ -54,16 +44,25 @@ func (e *EdgeProtection) createRedirectRules(ctx *pulumi.Context, zone *cloudfla
 						PreserveQueryString: pulumi.Bool(true),
 						StatusCode:          pulumi.Float64(301),
 						TargetUrl: &cloudflare.RulesetRuleActionParametersFromValueTargetUrlArgs{
-							Value: pulumi.Sprintf(`https://%s${substring(request.uri,0,-1)}`, e.Domain),
+							Value: pulumi.Sprintf(`https://%s${substring(request.uri,0,-1)}`, upstream.DomainURL),
 						},
 					},
 				},
 				Enabled: pulumi.Bool(true),
 			},
-
 			// TODO add configurable geo location rules
 			// See: https://developers.cloudflare.com/rules/url-forwarding/examples/redirect-all-country/
-		},
+		)
+	}
+
+	// See: https://developers.cloudflare.com/rules/url-forwarding/
+	redirectRuleset, err := cloudflare.NewRuleset(ctx, e.newResourceName("redirect-ruleset", "optimization", 64), &cloudflare.RulesetArgs{
+		ZoneId:      zone.ID(),
+		Name:        pulumi.String("HTTPS Redirect Rules"),
+		Kind:        pulumi.String("zone"),
+		Phase:       pulumi.String("http_request_dynamic_redirect"),
+		Description: pulumi.String("Force HTTPS and handle redirects"),
+		Rules:       rules,
 	}, pulumi.Parent(e))
 
 	if err != nil {

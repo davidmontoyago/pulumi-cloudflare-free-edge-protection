@@ -12,10 +12,8 @@ import (
 type EdgeProtection struct {
 	pulumi.ResourceState
 
-	Domain                   string
-	BackendURL               pulumi.StringOutput
-	FrontendURL              pulumi.StringOutput
-	CloudflareAccountID      string
+	Upstreams                []Upstream
+	CloudflareZone           CloudflareZone
 	EnableFreeTier           bool
 	SecurityLevel            pulumi.StringOutput
 	BrowserCacheTTL          pulumi.IntOutput
@@ -36,9 +34,7 @@ type EdgeProtection struct {
 
 	// Core resources
 	zone               *cloudflare.Zone
-	backendDNSRecord   *cloudflare.DnsRecord
-	frontendDNSRecord  *cloudflare.DnsRecord
-	rootDNSRecord      *cloudflare.DnsRecord
+	upstreamDNSRecords []*cloudflare.DnsRecord
 	zoneSettings       []*cloudflare.ZoneSetting
 	rateLimitRuleset   *cloudflare.Ruleset
 	ddosL7Ruleset      *cloudflare.Ruleset
@@ -52,24 +48,16 @@ type EdgeProtection struct {
 
 // NewEdgeProtection creates a new EdgeProtection instance with the provided configuration.
 func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArgs, opts ...pulumi.ResourceOption) (*EdgeProtection, error) {
-	if args.Domain == "" {
-		return nil, fmt.Errorf("domain is required")
+	if len(args.Upstreams) == 0 {
+		return nil, fmt.Errorf("upstreams are required")
 	}
-	if args.BackendURL == nil {
-		return nil, fmt.Errorf("backend URL is required")
-	}
-	if args.FrontendURL == nil {
-		return nil, fmt.Errorf("frontend URL is required")
-	}
-	if args.CloudflareAccountID == "" {
+	if args.CloudflareZone.CloudflareAccountID == "" {
 		return nil, fmt.Errorf("cloudflare account ID is required")
 	}
 
 	edgeProtection := &EdgeProtection{
-		Domain:                   args.Domain,
-		BackendURL:               args.BackendURL.ToStringOutput(),
-		FrontendURL:              args.FrontendURL.ToStringOutput(),
-		CloudflareAccountID:      args.CloudflareAccountID,
+		Upstreams:                args.Upstreams,
+		CloudflareZone:           args.CloudflareZone,
 		EnableFreeTier:           args.EnableFreeTier,
 		SecurityLevel:            setDefaultString(args.SecurityLevel, "medium"),
 		BrowserCacheTTL:          setDefaultInt(args.BrowserCacheTTL, 14400),                // 4 hours
@@ -101,21 +89,19 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 	}
 
 	err = ctx.RegisterResourceOutputs(edgeProtection, pulumi.Map{
-		"cloudflare_free_tier_enabled":      pulumi.Bool(edgeProtection.EnableFreeTier),
-		"cloudflare_zone_id":                edgeProtection.zone.ID(),
-		"cloudflare_zone_name":              edgeProtection.zone.Name,
-		"cloudflare_zone_status":            edgeProtection.zone.Status,
-		"cloudflare_zone_name_servers":      edgeProtection.zone.NameServers,
-		"cloudflare_backend_dns_record_id":  edgeProtection.backendDNSRecord.ID(),
-		"cloudflare_frontend_dns_record_id": edgeProtection.frontendDNSRecord.ID(),
-		// "cloudflare_root_dns_record_id":    edgeProtection.rootDNSRecord.ID(),
-		"cloudflare_rate_limit_ruleset_id": edgeProtection.rateLimitRuleset.ID(),
-		"cloudflare_ddos_l7_ruleset_id":    edgeProtection.ddosL7Ruleset.ID(),
-		"cloudflare_waf_custom_ruleset_id": edgeProtection.wafCustomRuleset.ID(),
-		"cloudflare_cache_ruleset_id":      edgeProtection.cacheRuleset.ID(),
-		"cloudflare_redirect_ruleset_id":   edgeProtection.redirectRuleset.ID(),
-		"cloudflare_config_ruleset_id":     edgeProtection.configRuleset.ID(),
-		"cloudflare_ruleset_rules_count":   edgeProtection.freeTierRulesCount,
+		"cloudflare_free_tier_enabled":         pulumi.Bool(edgeProtection.EnableFreeTier),
+		"cloudflare_zone_id":                   edgeProtection.zone.ID(),
+		"cloudflare_zone_name":                 edgeProtection.zone.Name,
+		"cloudflare_zone_status":               edgeProtection.zone.Status,
+		"cloudflare_zone_name_servers":         edgeProtection.zone.NameServers,
+		"cloudflare_upstream_dns_record_count": pulumi.Int(len(edgeProtection.upstreamDNSRecords)),
+		"cloudflare_rate_limit_ruleset_id":     edgeProtection.rateLimitRuleset.ID(),
+		"cloudflare_ddos_l7_ruleset_id":        edgeProtection.ddosL7Ruleset.ID(),
+		"cloudflare_waf_custom_ruleset_id":     edgeProtection.wafCustomRuleset.ID(),
+		"cloudflare_cache_ruleset_id":          edgeProtection.cacheRuleset.ID(),
+		"cloudflare_redirect_ruleset_id":       edgeProtection.redirectRuleset.ID(),
+		"cloudflare_config_ruleset_id":         edgeProtection.configRuleset.ID(),
+		"cloudflare_ruleset_rules_count":       edgeProtection.freeTierRulesCount,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to register resource outputs: %w", err)
@@ -133,11 +119,12 @@ func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 	}
 	e.zone = zone
 
-	// 2. Create DNS records
-	err = e.createDNSRecords(ctx, zone)
+	// 2. Create DNS records for each upstream
+	upstreamDNSRecords, err := e.createDNSRecords(ctx, zone)
 	if err != nil {
-		return fmt.Errorf("failed to create DNS records: %w", err)
+		return fmt.Errorf("failed to create upstream DNS records: %w", err)
 	}
+	e.upstreamDNSRecords = upstreamDNSRecords
 
 	// 3. Configure SSL/TLS settings
 	zoneSettings, err := e.configureTLSSettings(ctx, zone)
@@ -207,19 +194,9 @@ func (e *EdgeProtection) GetZone() *cloudflare.Zone {
 	return e.zone
 }
 
-// GetBackendDNSRecord returns the backend DNS record resource.
-func (e *EdgeProtection) GetBackendDNSRecord() *cloudflare.DnsRecord {
-	return e.backendDNSRecord
-}
-
-// GetFrontendDNSRecord returns the frontend DNS record resource.
-func (e *EdgeProtection) GetFrontendDNSRecord() *cloudflare.DnsRecord {
-	return e.frontendDNSRecord
-}
-
-// GetRootDNSRecord returns the root DNS record resource.
-func (e *EdgeProtection) GetRootDNSRecord() *cloudflare.DnsRecord {
-	return e.rootDNSRecord
+// GetUpstreamDNSRecords returns the upstream DNS records resource.
+func (e *EdgeProtection) GetUpstreamDNSRecords() []*cloudflare.DnsRecord {
+	return e.upstreamDNSRecords
 }
 
 // GetZoneSettings returns the zone settings override resource.

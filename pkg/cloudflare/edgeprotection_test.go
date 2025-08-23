@@ -14,9 +14,8 @@ import (
 
 const (
 	testDomain              = "myapp.path2prod.dev"
-	testTopLevelDomain      = ".path2prod.dev" // Extracted from testDomain
-	testBackendURL          = "backend-service-abc123-uc.a.run.app"
-	testFrontendURL         = "frontend-service-def456-uc.a.run.app"
+	testTopLevelDomain      = "path2prod.dev" // Extracted from testDomain
+	testBackendUpstreamURL  = "ghs.googlehosted.com"
 	testCloudflareAccountID = "test-cloudflare-account-id-123"
 )
 
@@ -84,10 +83,17 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		args := &edge.EdgeProtectionArgs{
-			Domain:              testDomain,
-			BackendURL:          pulumi.String(testBackendURL),
-			FrontendURL:         pulumi.String(testFrontendURL),
-			CloudflareAccountID: testCloudflareAccountID,
+			Upstreams: []edge.Upstream{
+				{
+					DomainURL:         testDomain,
+					CanonicalNameURL:  testBackendUpstreamURL,
+					DisableProtection: false,
+				},
+			},
+			CloudflareZone: edge.CloudflareZone{
+				CloudflareAccountID: testCloudflareAccountID,
+				Protected:           false,
+			},
 			SecurityLevel:       pulumi.String("medium"),
 			BrowserCacheTTL:     pulumi.Int(14400),
 			EdgeCacheTTLSeconds: pulumi.Int(2419200),
@@ -109,25 +115,11 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify basic properties
-		assert.Equal(t, testDomain, edgeProtection.Domain)
-
-		backendURLCh := make(chan string, 1)
-		defer close(backendURLCh)
-		edgeProtection.BackendURL.ApplyT(func(url string) error {
-			backendURLCh <- url
-			return nil
-		})
-		assert.Equal(t, testBackendURL, <-backendURLCh)
-
-		frontendURLCh := make(chan string, 1)
-		defer close(frontendURLCh)
-		edgeProtection.FrontendURL.ApplyT(func(url string) error {
-			frontendURLCh <- url
-			return nil
-		})
-		assert.Equal(t, testFrontendURL, <-frontendURLCh)
-
-		assert.Equal(t, testCloudflareAccountID, edgeProtection.CloudflareAccountID)
+		assert.Equal(t, testDomain, edgeProtection.Upstreams[0].DomainURL)
+		assert.Equal(t, testBackendUpstreamURL, edgeProtection.Upstreams[0].CanonicalNameURL)
+		assert.False(t, edgeProtection.Upstreams[0].DisableProtection)
+		assert.Equal(t, testCloudflareAccountID, edgeProtection.CloudflareZone.CloudflareAccountID)
+		assert.False(t, edgeProtection.CloudflareZone.Protected)
 
 		// Verify security level using async pattern
 		securityLevelCh := make(chan string, 1)
@@ -188,49 +180,26 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 		assert.Equal(t, testTopLevelDomain, <-zoneNameCh, "Zone name should match top-level domain")
 
 		// Verify DNS records
-		backendRecord := edgeProtection.GetBackendDNSRecord()
-		require.NotNil(t, backendRecord, "Backend DNS record should not be nil")
+		upstreamRecords := edgeProtection.GetUpstreamDNSRecords()
+		require.NotNil(t, upstreamRecords, "Upstream DNS records should not be nil")
+		assert.Len(t, upstreamRecords, 1, "Should have 1 upstream DNS record")
 
-		frontendRecord := edgeProtection.GetFrontendDNSRecord()
-		require.NotNil(t, frontendRecord, "Frontend DNS record should not be nil")
-
-		// Note: Root DNS record is commented out in the current implementation
-		// rootRecord := edgeProtection.GetRootDNSRecord()
-		// require.NotNil(t, rootRecord, "Root DNS record should not be nil")
-
-		// Verify backend DNS record configuration - should be api.{domain}
-		backendNameCh := make(chan string, 1)
-		defer close(backendNameCh)
-		backendRecord.Name.ApplyT(func(name string) error {
-			backendNameCh <- name
+		// Verify upstream DNS record configuration
+		recordNameCh := make(chan string, 1)
+		defer close(recordNameCh)
+		upstreamRecords[0].Name.ApplyT(func(name string) error {
+			recordNameCh <- name
 			return nil
 		})
-		assert.Equal(t, "api."+testDomain, <-backendNameCh, "Backend DNS record name should be 'api.{domain}'")
+		assert.Equal(t, testDomain, <-recordNameCh, "Upstream DNS record name should match domain")
 
-		backendValueCh := make(chan string, 1)
-		defer close(backendValueCh)
-		backendRecord.Data.ApplyT(func(value *cloudflare.DnsRecordData) error {
-			backendValueCh <- *value.Target
+		recordValueCh := make(chan string, 1)
+		defer close(recordValueCh)
+		upstreamRecords[0].Data.ApplyT(func(value *cloudflare.DnsRecordData) error {
+			recordValueCh <- *value.Target
 			return nil
 		})
-		assert.Equal(t, testBackendURL, <-backendValueCh, "Backend DNS record value should match backend URL")
-
-		// Verify frontend DNS record configuration - should be the full domain
-		frontendNameCh := make(chan string, 1)
-		defer close(frontendNameCh)
-		frontendRecord.Name.ApplyT(func(name string) error {
-			frontendNameCh <- name
-			return nil
-		})
-		assert.Equal(t, testDomain, <-frontendNameCh, "Frontend DNS record name should be the full domain")
-
-		frontendValueCh := make(chan string, 1)
-		defer close(frontendValueCh)
-		frontendRecord.Data.ApplyT(func(value *cloudflare.DnsRecordData) error {
-			frontendValueCh <- *value.Target
-			return nil
-		})
-		assert.Equal(t, testFrontendURL, <-frontendValueCh, "Frontend DNS record value should match frontend URL")
+		assert.Equal(t, testBackendUpstreamURL, <-recordValueCh, "Upstream DNS record target should match upstream URL")
 
 		// Verify zone settings
 		zoneSettings := edgeProtection.GetZoneSettings()
@@ -254,10 +223,15 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		args := &edge.EdgeProtectionArgs{
-			Domain:              testDomain,
-			BackendURL:          pulumi.String(testBackendURL),
-			FrontendURL:         pulumi.String(testFrontendURL),
-			CloudflareAccountID: testCloudflareAccountID,
+			Upstreams: []edge.Upstream{
+				{
+					DomainURL:        testDomain,
+					CanonicalNameURL: testBackendUpstreamURL,
+				},
+			},
+			CloudflareZone: edge.CloudflareZone{
+				CloudflareAccountID: testCloudflareAccountID,
+			},
 			// Using defaults for other fields
 		}
 
@@ -386,38 +360,26 @@ func TestNewEdgeProtection_RequiredFields(t *testing.T) {
 		expectedErr string
 	}{
 		{
-			name: "missing domain",
+			name: "missing upstreams",
 			args: &edge.EdgeProtectionArgs{
-				BackendURL:          pulumi.String(testBackendURL),
-				FrontendURL:         pulumi.String(testFrontendURL),
-				CloudflareAccountID: testCloudflareAccountID,
+				CloudflareZone: edge.CloudflareZone{
+					CloudflareAccountID: testCloudflareAccountID,
+				},
 			},
-			expectedErr: "domain is required",
+			expectedErr: "upstreams are required",
 		},
 		{
-			name: "missing backend URL",
+			name: "missing cloudflare account id",
 			args: &edge.EdgeProtectionArgs{
-				Domain:              testDomain,
-				FrontendURL:         pulumi.String(testFrontendURL),
-				CloudflareAccountID: testCloudflareAccountID,
-			},
-			expectedErr: "backend URL is required",
-		},
-		{
-			name: "missing frontend URL",
-			args: &edge.EdgeProtectionArgs{
-				Domain:              testDomain,
-				BackendURL:          pulumi.String(testBackendURL),
-				CloudflareAccountID: testCloudflareAccountID,
-			},
-			expectedErr: "frontend URL is required",
-		},
-		{
-			name: "missing cloudflare account ID",
-			args: &edge.EdgeProtectionArgs{
-				Domain:      testDomain,
-				BackendURL:  pulumi.String(testBackendURL),
-				FrontendURL: pulumi.String(testFrontendURL),
+				Upstreams: []edge.Upstream{
+					{
+						DomainURL:        testDomain,
+						CanonicalNameURL: testBackendUpstreamURL,
+					},
+				},
+				CloudflareZone: edge.CloudflareZone{
+					CloudflareAccountID: "",
+				},
 			},
 			expectedErr: "cloudflare account ID is required",
 		},
@@ -447,11 +409,16 @@ func TestNewEdgeProtection_RateLimitRuleset(t *testing.T) {
 
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		args := &edge.EdgeProtectionArgs{
-			Domain:              testDomain,
-			BackendURL:          pulumi.String(testBackendURL),
-			FrontendURL:         pulumi.String(testFrontendURL),
-			CloudflareAccountID: testCloudflareAccountID,
-			RateLimitThreshold:  pulumi.Int(100),
+			Upstreams: []edge.Upstream{
+				{
+					DomainURL:        testDomain,
+					CanonicalNameURL: testBackendUpstreamURL,
+				},
+			},
+			CloudflareZone: edge.CloudflareZone{
+				CloudflareAccountID: testCloudflareAccountID,
+			},
+			RateLimitThreshold: pulumi.Int(100),
 		}
 
 		edgeProtection, err := edge.NewEdgeProtection(ctx, "test-rate-limit", args)
@@ -504,10 +471,15 @@ func TestNewEdgeProtection_DDoSProtectionRulesets(t *testing.T) {
 
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		args := &edge.EdgeProtectionArgs{
-			Domain:              testDomain,
-			BackendURL:          pulumi.String(testBackendURL),
-			FrontendURL:         pulumi.String(testFrontendURL),
-			CloudflareAccountID: testCloudflareAccountID,
+			Upstreams: []edge.Upstream{
+				{
+					DomainURL:        testDomain,
+					CanonicalNameURL: testBackendUpstreamURL,
+				},
+			},
+			CloudflareZone: edge.CloudflareZone{
+				CloudflareAccountID: testCloudflareAccountID,
+			},
 		}
 
 		edgeProtection, err := edge.NewEdgeProtection(ctx, "test-ddos-protection", args)
@@ -552,10 +524,15 @@ func TestNewEdgeProtection_WAFManagedRuleset(t *testing.T) {
 
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		args := &edge.EdgeProtectionArgs{
-			Domain:              testDomain,
-			BackendURL:          pulumi.String(testBackendURL),
-			FrontendURL:         pulumi.String(testFrontendURL),
-			CloudflareAccountID: testCloudflareAccountID,
+			Upstreams: []edge.Upstream{
+				{
+					DomainURL:        testDomain,
+					CanonicalNameURL: testBackendUpstreamURL,
+				},
+			},
+			CloudflareZone: edge.CloudflareZone{
+				CloudflareAccountID: testCloudflareAccountID,
+			},
 		}
 
 		edgeProtection, err := edge.NewEdgeProtection(ctx, "test-waf-managed", args)
@@ -600,10 +577,15 @@ func TestNewEdgeProtection_WAFCustomRuleset(t *testing.T) {
 
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		args := &edge.EdgeProtectionArgs{
-			Domain:              testDomain,
-			BackendURL:          pulumi.String(testBackendURL),
-			FrontendURL:         pulumi.String(testFrontendURL),
-			CloudflareAccountID: testCloudflareAccountID,
+			Upstreams: []edge.Upstream{
+				{
+					DomainURL:        testDomain,
+					CanonicalNameURL: testBackendUpstreamURL,
+				},
+			},
+			CloudflareZone: edge.CloudflareZone{
+				CloudflareAccountID: testCloudflareAccountID,
+			},
 		}
 
 		edgeProtection, err := edge.NewEdgeProtection(ctx, "test-waf-custom", args)
@@ -648,10 +630,15 @@ func TestNewEdgeProtection_CacheRuleset(t *testing.T) {
 
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		args := &edge.EdgeProtectionArgs{
-			Domain:              testDomain,
-			BackendURL:          pulumi.String(testBackendURL),
-			FrontendURL:         pulumi.String(testFrontendURL),
-			CloudflareAccountID: testCloudflareAccountID,
+			Upstreams: []edge.Upstream{
+				{
+					DomainURL:        testDomain,
+					CanonicalNameURL: testBackendUpstreamURL,
+				},
+			},
+			CloudflareZone: edge.CloudflareZone{
+				CloudflareAccountID: testCloudflareAccountID,
+			},
 			BrowserCacheTTL:     pulumi.Int(7200),
 			EdgeCacheTTLSeconds: pulumi.Int(86400),
 		}
@@ -698,10 +685,15 @@ func TestNewEdgeProtection_RedirectRuleset(t *testing.T) {
 
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		args := &edge.EdgeProtectionArgs{
-			Domain:              testDomain,
-			BackendURL:          pulumi.String(testBackendURL),
-			FrontendURL:         pulumi.String(testFrontendURL),
-			CloudflareAccountID: testCloudflareAccountID,
+			Upstreams: []edge.Upstream{
+				{
+					DomainURL:        testDomain,
+					CanonicalNameURL: testBackendUpstreamURL,
+				},
+			},
+			CloudflareZone: edge.CloudflareZone{
+				CloudflareAccountID: testCloudflareAccountID,
+			},
 		}
 
 		edgeProtection, err := edge.NewEdgeProtection(ctx, "test-redirect", args)
@@ -729,7 +721,7 @@ func TestNewEdgeProtection_RedirectRuleset(t *testing.T) {
 		assert.Equal(t, "HTTPS Redirect Rules", <-nameCh)
 
 		redirectRuleset.Rules.ApplyT(func(rules []cloudflare.RulesetRule) error {
-			assert.Len(t, rules, 3, "Redirect ruleset should have 3 rules")
+			assert.Len(t, rules, 2, "Redirect ruleset should have 2 rules per upstream")
 			return nil
 		})
 
@@ -746,10 +738,15 @@ func TestNewEdgeProtection_ConfigurationRuleset(t *testing.T) {
 
 	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
 		args := &edge.EdgeProtectionArgs{
-			Domain:              testDomain,
-			BackendURL:          pulumi.String(testBackendURL),
-			FrontendURL:         pulumi.String(testFrontendURL),
-			CloudflareAccountID: testCloudflareAccountID,
+			Upstreams: []edge.Upstream{
+				{
+					DomainURL:        testDomain,
+					CanonicalNameURL: testBackendUpstreamURL,
+				},
+			},
+			CloudflareZone: edge.CloudflareZone{
+				CloudflareAccountID: testCloudflareAccountID,
+			},
 			SecurityLevel:       pulumi.String("high"),
 			BrowserCheckEnabled: pulumi.Bool(true),
 		}

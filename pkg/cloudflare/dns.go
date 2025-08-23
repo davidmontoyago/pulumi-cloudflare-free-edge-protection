@@ -8,22 +8,20 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-// createZone creates a Cloudflare DNS Zone with free tier plan.
+// createZone manages a Cloudflare DNS Zone with free tier plan.
 func (e *EdgeProtection) createZone(ctx *pulumi.Context) (*cloudflare.Zone, error) {
 	// Extract mydomain.com from my-app.mydomain.com
-	zoneDomainURL := e.Domain[strings.Index(e.Domain, ".")+1:]
+	firstUpstream := e.Upstreams[0]
+	zoneDomainURL := firstUpstream.DomainURL[strings.Index(firstUpstream.DomainURL, ".")+1:]
 
 	zone, err := cloudflare.NewZone(ctx, e.newResourceName("zone", "dns", 64), &cloudflare.ZoneArgs{
 		Account: cloudflare.ZoneAccountArgs{
-			Id: pulumi.String(e.CloudflareAccountID),
+			Id: pulumi.String(e.CloudflareZone.CloudflareAccountID),
 		},
 		Name: pulumi.String(zoneDomainURL),
 		// Full zone management. A partial setup with CNAMEs wouldn't be enough.
 		Type: pulumi.String("full"),
-	},
-		// TODO make configurable
-		pulumi.Protect(true),
-	)
+	}, pulumi.Protect(e.CloudflareZone.Protected))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Cloudflare DNS zone: %w", err)
 	}
@@ -32,48 +30,27 @@ func (e *EdgeProtection) createZone(ctx *pulumi.Context) (*cloudflare.Zone, erro
 }
 
 // createDNSRecords creates DNS records pointing to backend and frontend services.
-func (e *EdgeProtection) createDNSRecords(ctx *pulumi.Context, zone *cloudflare.Zone) error {
-	// Backend DNS record (api.domain.com)
-	backendRecord, err := cloudflare.NewDnsRecord(ctx, e.newResourceName("backend", "dns", 64), &cloudflare.DnsRecordArgs{
-		ZoneId:  zone.ID(),
-		Name:    pulumi.Sprintf("api.%s", e.Domain),
-		Content: e.BackendURL,
-		Type:    pulumi.String("CNAME"),
-		Ttl:     pulumi.Float64(1), // Automatic TTL when proxied
-		Proxied: pulumi.Bool(true), // Enable Cloudflare proxy for CDN + DDoS protection. A partial setup with CNAMEs wouldn't be enough.
-	}, pulumi.Parent(e))
-	if err != nil {
-		return fmt.Errorf("failed to create backend DNS record: %w", err)
+func (e *EdgeProtection) createDNSRecords(ctx *pulumi.Context, zone *cloudflare.Zone) ([]*cloudflare.DnsRecord, error) {
+	var upstreamRecords []*cloudflare.DnsRecord
+	for _, upstream := range e.Upstreams {
+		recordName := strings.Split(upstream.DomainURL, ".")[0]
+		recordResourceName := e.newResourceName(fmt.Sprintf("upstream-%s", recordName), "dns", 64)
+		record, err := cloudflare.NewDnsRecord(ctx, recordResourceName, &cloudflare.DnsRecordArgs{
+			ZoneId:  zone.ID(),
+			Name:    pulumi.String(upstream.DomainURL),
+			Content: pulumi.String(upstream.CanonicalNameURL),
+			Type:    pulumi.String("CNAME"),
+			// Enable Cloudflare proxy for CDN + DDoS protection
+			// For first time setup, set to false until the
+			// cross-cloud DNS is resolved (E.g. In GCP Doman Mapping shows success).
+			Proxied: pulumi.Bool(!upstream.DisableProtection),
+			Ttl:     pulumi.Float64(1), // Automatic TTL when proxied
+		}, pulumi.Parent(e))
+		if err != nil {
+			return nil, fmt.Errorf("failed to create upstream DNS record %s: %w", upstream.DomainURL, err)
+		}
+		upstreamRecords = append(upstreamRecords, record)
 	}
-	e.backendDNSRecord = backendRecord
 
-	// Frontend DNS record (domain.com)
-	frontendRecord, err := cloudflare.NewDnsRecord(ctx, e.newResourceName("frontend", "dns", 64), &cloudflare.DnsRecordArgs{
-		ZoneId:  zone.ID(),
-		Name:    pulumi.String(e.Domain),
-		Content: e.FrontendURL,
-		Type:    pulumi.String("CNAME"),
-		Ttl:     pulumi.Float64(1), // Automatic TTL when proxied
-		Proxied: pulumi.Bool(true), // Enables CDN and DDoS protection
-	}, pulumi.Parent(e))
-	if err != nil {
-		return fmt.Errorf("failed to create frontend DNS record: %w", err)
-	}
-	e.frontendDNSRecord = frontendRecord
-
-	// Root domain redirect to www
-	// rootRecord, err := cloudflare.NewRecord(ctx, e.newResourceName("root", "dns", 64), &cloudflare.RecordArgs{
-	// 	ZoneId:  zone.ID(),
-	// 	Name:    pulumi.String("@"), // Root domain
-	// 	Value:   pulumi.String(e.FrontendURL),
-	// 	Type:    pulumi.String("CNAME"),
-	// 	Ttl:     pulumi.Int(1),
-	// 	Proxied: pulumi.Bool(true),
-	// }, pulumi.Parent(e))
-	// if err != nil {
-	// 	return fmt.Errorf("failed to create root DNS record: %w", err)
-	// }
-	// e.rootDNSRecord = rootRecord
-
-	return nil
+	return upstreamRecords, nil
 }
