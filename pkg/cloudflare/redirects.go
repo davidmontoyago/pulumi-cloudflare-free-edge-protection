@@ -2,6 +2,7 @@ package cloudflare
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pulumi/pulumi-cloudflare/sdk/v6/go/cloudflare"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -37,13 +38,13 @@ func (e *EdgeProtection) createRedirectRules(ctx *pulumi.Context, zone *cloudfla
 			&cloudflare.RulesetRuleArgs{
 				Action:      pulumi.String("redirect"),
 				Expression:  pulumi.Sprintf(`http.host eq "www.%s"`, e.Domain),
-				Description: pulumi.String("Redirect www to root domain"),
+				Description: pulumi.Sprintf("Redirect www.%s to %s domain", e.Domain, e.Domain),
 				ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
 					FromValue: &cloudflare.RulesetRuleActionParametersFromValueArgs{
 						PreserveQueryString: pulumi.Bool(true),
 						StatusCode:          pulumi.Float64(301),
 						TargetUrl: &cloudflare.RulesetRuleActionParametersFromValueTargetUrlArgs{
-							Expression: pulumi.Sprintf(`https://%s${request.uri}`, e.Domain),
+							Value: pulumi.Sprintf(`https://%s${request.uri}`, e.Domain),
 						},
 					},
 				},
@@ -53,18 +54,18 @@ func (e *EdgeProtection) createRedirectRules(ctx *pulumi.Context, zone *cloudfla
 			// Redirect trailing slashes for SEO
 			&cloudflare.RulesetRuleArgs{
 				Action: pulumi.String("redirect"),
-				Expression: pulumi.String(`
-									http.request.uri.path matches "^.+/$" and
-									http.request.uri.path ne "/" and
-									not http.request.uri.path matches "^/api/"
-							`),
+				Expression: pulumi.Sprintf("(%s)", strings.Join([]string{
+					`ends_with(http.request.uri.path, "/")`,             // Ends with /
+					`(http.request.uri.path ne "/")`,                    // Not root path
+					`(not starts_with(http.request.uri.path, "/api/"))`, // Doesn't start
+				}, " and ")),
 				Description: pulumi.String("Remove trailing slashes for SEO"),
 				ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
 					FromValue: &cloudflare.RulesetRuleActionParametersFromValueArgs{
 						PreserveQueryString: pulumi.Bool(true),
 						StatusCode:          pulumi.Float64(301),
 						TargetUrl: &cloudflare.RulesetRuleActionParametersFromValueTargetUrlArgs{
-							Expression: pulumi.Sprintf(`https://%s${substring(request.uri,0,-1)}`, e.Domain),
+							Value: pulumi.Sprintf(`https://%s${substring(request.uri,0,-1)}`, e.Domain),
 						},
 					},
 				},

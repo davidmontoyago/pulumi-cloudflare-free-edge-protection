@@ -41,6 +41,8 @@ type EdgeProtectionArgs struct {
 	// Valid values: "1.0", "1.1", "1.2", "1.3"
 	MinTLSVersion pulumi.StringInput
 	// Whether to always use HTTPS (optional, defaults to true)
+	// This must be disabled for GCP Cloud Run instances
+	// See: https://cloud.google.com/run/docs/mapping-custom-domains#dns_update
 	AlwaysUseHTTPS pulumi.BoolInput
 	// Whether to enable TLS 1.3 (optional, defaults to true)
 	TLS13Enabled pulumi.BoolInput

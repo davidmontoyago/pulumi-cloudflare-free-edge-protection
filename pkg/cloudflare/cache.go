@@ -2,6 +2,7 @@ package cloudflare
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pulumi/pulumi-cloudflare/sdk/v6/go/cloudflare"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -22,13 +23,27 @@ func (e *EdgeProtection) createCacheRules(ctx *pulumi.Context, zone *cloudflare.
 			// Cache everything for static assets (more specific than legacy page rule)
 			&cloudflare.RulesetRuleArgs{
 				Action: pulumi.String("set_cache_settings"),
-				// TODO make me configurable
-				Expression: pulumi.String(`
-									(http.request.uri.path matches ".*\\.(css|js|jpg|jpeg|png|gif|ico|svg|woff|woff2|ttf|eot|pdf|zip|mp4|mp3)$") or
-									(http.request.uri.path matches "^/static/.*") or
-									(http.request.uri.path matches "^/assets/.*") or
-									(http.request.uri.path matches "^/public/.*")
-							`),
+				Expression: pulumi.Sprintf("(%s)", strings.Join([]string{
+					`(http.request.uri.path contains ".css")`,
+					`(http.request.uri.path contains ".js")`,
+					`(http.request.uri.path contains ".jpg")`,
+					`(http.request.uri.path contains ".jpeg")`,
+					`(http.request.uri.path contains ".png")`,
+					`(http.request.uri.path contains ".gif")`,
+					`(http.request.uri.path contains ".ico")`,
+					`(http.request.uri.path contains ".svg")`,
+					`(http.request.uri.path contains ".woff")`,
+					`(http.request.uri.path contains ".woff2")`,
+					`(http.request.uri.path contains ".ttf")`,
+					`(http.request.uri.path contains ".eot")`,
+					`(http.request.uri.path contains ".pdf")`,
+					`(http.request.uri.path contains ".zip")`,
+					`(http.request.uri.path contains ".mp4")`,
+					`(http.request.uri.path contains ".mp3")`,
+					`(http.request.uri.path contains "/static/")`,
+					`(http.request.uri.path contains "/assets/")`,
+					`(http.request.uri.path contains "/public/")`,
+				}, " or ")),
 				Description: pulumi.String("Cache static assets aggressively"),
 				ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
 					Cache: pulumi.Bool(true),
@@ -53,12 +68,12 @@ func (e *EdgeProtection) createCacheRules(ctx *pulumi.Context, zone *cloudflare.
 			// Different cache settings for HTML pages
 			&cloudflare.RulesetRuleArgs{
 				Action: pulumi.String("set_cache_settings"),
-				// TODO make me configurable
-				Expression: pulumi.String(`
-									(http.request.uri.path matches ".*\\.(html|htm)$") or
-									(http.request.uri.path eq "/") or
-									(not http.request.uri.path contains ".")
-							`),
+				Expression: pulumi.Sprintf("(%s)", strings.Join([]string{
+					`(http.request.uri.path contains ".html")`,
+					`(http.request.uri.path contains ".htm")`,
+					`(http.request.uri.path eq "/")`,
+					`(not http.request.uri.path contains ".")`,
+				}, " or ")),
 				Description: pulumi.String("Cache HTML pages with shorter TTL"),
 				ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
 					Cache: pulumi.Bool(true),
@@ -81,18 +96,18 @@ func (e *EdgeProtection) createCacheRules(ctx *pulumi.Context, zone *cloudflare.
 			// Bypass cache for dynamic content
 			&cloudflare.RulesetRuleArgs{
 				Action: pulumi.String("set_cache_settings"),
-				// TODO make me configurable
-				Expression: pulumi.String(`
-									(http.request.uri.path matches "^/api/.*") or
-									(http.request.uri.path matches "^/admin/.*") or
-									(http.request.uri.path contains "/login") or
-									(http.request.uri.path contains "/checkout") or
-									(http.request.uri.path contains "/cart") or
-									(http.request.method ne "GET")
-							`),
+				Expression: pulumi.Sprintf("(%s)", strings.Join([]string{
+					`(http.request.uri.path contains "/api/")`,
+					`(http.request.uri.path contains "/admin/")`,
+					`(http.request.uri.path contains "/login")`,
+					`(http.request.uri.path contains "/checkout")`,
+					`(http.request.uri.path contains "/cart")`,
+					`(http.request.method ne "GET")`,
+				}, " or ")),
 				Description: pulumi.String("Bypass cache for dynamic and sensitive content"),
 				ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
 					Cache: pulumi.Bool(true),
+					// TODO make me configurable
 					BrowserTtl: &cloudflare.RulesetRuleActionParametersBrowserTtlArgs{
 						Mode: pulumi.String("bypass"),
 					},
