@@ -8,69 +8,6 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-// Cloudflare Managed Ruleset IDs
-// See: https://developers.cloudflare.com/waf/managed-rules/
-const (
-	cloudflareManagedRulesetID            = "efb7b8c949ac4650a09736fc376e9aee"
-	cloudflareOWASPManagedRulesetID       = "4814384a9e5d4991b9815dcfc25d2f1f"
-	cloudflareExposedCredentialsRulesetID = "c2e184081120413c86c3ab7e14069605"
-)
-
-// createWAFManagedRules deploys Cloudflare's managed security rulesets
-// for firewall, best-practice OWASP core, and exposed credentials protection.
-//
-// Not included under the free tier.
-func (e *EdgeProtection) createWAFManagedRules(ctx *pulumi.Context, zone *cloudflare.Zone) (*cloudflare.Ruleset, error) {
-	if e.EnableFreeTier {
-		return nil, nil
-	}
-
-	wafManagedRuleset, err := cloudflare.NewRuleset(ctx, e.newResourceName("managed-ruleset", "waf", 64), &cloudflare.RulesetArgs{
-		ZoneId:      zone.ID(),
-		Name:        pulumi.String("WAF Managed Security Rules"),
-		Kind:        pulumi.String("zone"),
-		Phase:       pulumi.String("http_request_firewall_managed"),
-		Description: pulumi.String("Deploy Cloudflare managed security rulesets"),
-		Rules: cloudflare.RulesetRuleArray{
-			&cloudflare.RulesetRuleArgs{
-				Action:      pulumi.String("execute"),
-				Expression:  pulumi.String("true"),
-				Description: pulumi.String("Execute Cloudflare Managed Ruleset"),
-				ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
-					Id: pulumi.String(cloudflareManagedRulesetID),
-					Overrides: &cloudflare.RulesetRuleActionParametersOverridesArgs{
-						Action: pulumi.String("managed_challenge"),
-					},
-				},
-				Enabled: pulumi.Bool(true),
-			},
-			&cloudflare.RulesetRuleArgs{
-				Action:      pulumi.String("execute"),
-				Expression:  pulumi.String("true"),
-				Description: pulumi.String("Execute OWASP Core Ruleset for common web attacks"),
-				ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
-					Id: pulumi.String(cloudflareOWASPManagedRulesetID),
-				},
-				Enabled: pulumi.Bool(true),
-			},
-			&cloudflare.RulesetRuleArgs{
-				Action:      pulumi.String("execute"),
-				Expression:  pulumi.String("true"),
-				Description: pulumi.String("Check for exposed credentials in requests"),
-				ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
-					Id: pulumi.String(cloudflareExposedCredentialsRulesetID),
-				},
-				Enabled: pulumi.Bool(true),
-			},
-		},
-	}, pulumi.Parent(e))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create WAF managed ruleset: %w", err)
-	}
-
-	return wafManagedRuleset, nil
-}
-
 // createWAFCustomRules creates custom WAF rules for apps to customize to their needs.
 //
 // Uses 5 free WAF rules.

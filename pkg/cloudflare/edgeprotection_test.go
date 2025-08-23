@@ -519,59 +519,6 @@ func TestNewEdgeProtection_DDoSProtectionRulesets(t *testing.T) {
 	}
 }
 
-func TestNewEdgeProtection_WAFManagedRuleset(t *testing.T) {
-	t.Parallel()
-
-	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
-		args := &edge.EdgeProtectionArgs{
-			Upstreams: []edge.Upstream{
-				{
-					DomainURL:        testDomain,
-					CanonicalNameURL: testBackendUpstreamURL,
-				},
-			},
-			CloudflareZone: edge.CloudflareZone{
-				CloudflareAccountID: testCloudflareAccountID,
-			},
-		}
-
-		edgeProtection, err := edge.NewEdgeProtection(ctx, "test-waf-managed", args)
-		require.NoError(t, err)
-
-		// Verify WAF managed ruleset is created
-		wafManagedRuleset := edgeProtection.GetWAFManagedRuleset()
-		require.NotNil(t, wafManagedRuleset, "WAF managed ruleset should not be nil")
-
-		// Verify basic properties
-		phaseCh := make(chan string, 1)
-		defer close(phaseCh)
-		wafManagedRuleset.Phase.ApplyT(func(phase string) error {
-			phaseCh <- phase
-			return nil
-		})
-		assert.Equal(t, "http_request_firewall_managed", <-phaseCh)
-
-		nameCh := make(chan string, 1)
-		defer close(nameCh)
-		wafManagedRuleset.Name.ApplyT(func(name string) error {
-			nameCh <- name
-			return nil
-		})
-		assert.Equal(t, "WAF Managed Security Rules", <-nameCh)
-
-		wafManagedRuleset.Rules.ApplyT(func(rules []cloudflare.RulesetRule) error {
-			assert.Len(t, rules, 3, "WAF managed ruleset should have 3 rules")
-			return nil
-		})
-
-		return nil
-	}, pulumi.WithMocks("project", "stack", &edgeProtectionMocks{}))
-
-	if err != nil {
-		t.Fatalf("Pulumi WithMocks failed: %v", err)
-	}
-}
-
 func TestNewEdgeProtection_WAFCustomRuleset(t *testing.T) {
 	t.Parallel()
 

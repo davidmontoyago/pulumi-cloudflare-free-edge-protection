@@ -14,7 +14,6 @@ type EdgeProtection struct {
 
 	Upstreams                []Upstream
 	CloudflareZone           CloudflareZone
-	EnableFreeTier           bool
 	SecurityLevel            pulumi.StringOutput
 	BrowserCacheTTL          pulumi.IntOutput
 	EdgeCacheTTLSeconds      pulumi.IntOutput
@@ -38,7 +37,6 @@ type EdgeProtection struct {
 	zoneSettings       []*cloudflare.ZoneSetting
 	rateLimitRuleset   *cloudflare.Ruleset
 	ddosL7Ruleset      *cloudflare.Ruleset
-	wafManagedRuleset  *cloudflare.Ruleset
 	wafCustomRuleset   *cloudflare.Ruleset
 	cacheRuleset       *cloudflare.Ruleset
 	redirectRuleset    *cloudflare.Ruleset
@@ -58,7 +56,6 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 	edgeProtection := &EdgeProtection{
 		Upstreams:                args.Upstreams,
 		CloudflareZone:           args.CloudflareZone,
-		EnableFreeTier:           args.EnableFreeTier,
 		SecurityLevel:            setDefaultString(args.SecurityLevel, "medium"),
 		BrowserCacheTTL:          setDefaultInt(args.BrowserCacheTTL, 14400),                // 4 hours
 		EdgeCacheTTLSeconds:      setDefaultInt(args.EdgeCacheTTLSeconds, 2419200),          // 28 days
@@ -89,7 +86,6 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 	}
 
 	err = ctx.RegisterResourceOutputs(edgeProtection, pulumi.Map{
-		"cloudflare_free_tier_enabled":         pulumi.Bool(edgeProtection.EnableFreeTier),
 		"cloudflare_zone_id":                   edgeProtection.zone.ID(),
 		"cloudflare_zone_name":                 edgeProtection.zone.Name,
 		"cloudflare_zone_status":               edgeProtection.zone.Status,
@@ -147,21 +143,16 @@ func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 	}
 	e.ddosL7Ruleset = ddosL7Ruleset
 
-	// 6. Create WAF managed rules
-	wafManagedRuleset, err := e.createWAFManagedRules(ctx, zone)
-	if err != nil {
-		return fmt.Errorf("failed to create WAF managed rules: %w", err)
-	}
-	e.wafManagedRuleset = wafManagedRuleset
-
-	// 7. Create custom WAF rules
+	// 6. Create custom WAF rules.
+	// Predefined best-practice managed rulesets are provided by default.
+	// See: https://developers.cloudflare.com/waf/managed-rules/
 	wafCustomRuleset, err := e.createWAFCustomRules(ctx, zone)
 	if err != nil {
 		return fmt.Errorf("failed to create WAF custom rules: %w", err)
 	}
 	e.wafCustomRuleset = wafCustomRuleset
 
-	// 8. Create traffic optimization rules
+	// 7. Create traffic optimization rules
 	cacheRuleset, redirectRuleset, configRuleset, err := e.createOptimizationRules(ctx, zone)
 	if err != nil {
 		return fmt.Errorf("failed to create optimization rules: %w", err)
@@ -212,11 +203,6 @@ func (e *EdgeProtection) GetRateLimitRuleset() *cloudflare.Ruleset {
 // GetDDoSL7Ruleset returns the DDoS L7 protection ruleset resource.
 func (e *EdgeProtection) GetDDoSL7Ruleset() *cloudflare.Ruleset {
 	return e.ddosL7Ruleset
-}
-
-// GetWAFManagedRuleset returns the WAF managed ruleset resource.
-func (e *EdgeProtection) GetWAFManagedRuleset() *cloudflare.Ruleset {
-	return e.wafManagedRuleset
 }
 
 // GetWAFCustomRuleset returns the WAF custom ruleset resource.

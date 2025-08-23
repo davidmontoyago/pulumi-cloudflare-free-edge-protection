@@ -45,8 +45,6 @@ type EdgeProtectionArgs struct {
 	Upstreams []Upstream
 	// Configuration for the Cloudflare zone to deploy the edge protection stack to.
 	CloudflareZone CloudflareZone
-	// Whether to stay within the free tier limits (optional, defaults to false)
-	EnableFreeTier bool
 	// TODO link to docs
 	// Security level for Cloudflare protection (optional, defaults to "medium")
 	// Valid values: "off", "essentially_off", "low", "medium", "high", "under_attack"
