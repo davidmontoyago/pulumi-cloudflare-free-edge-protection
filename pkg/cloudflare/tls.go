@@ -51,6 +51,10 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 	}
 
 	// 4. Always Use HTTPS
+	// An alterative approach is to use a Ruleset on the phase "http_request_dynamic_redirect"
+	// to use the Automatic Https Rewrites feature.
+	// See: https://developers.cloudflare.com/ssl/edge-certificates/additional-options/automatic-https-rewrites/
+	// Favoring always_use_https zone setting to handle redirect before rules are evaluated.
 	alwaysHTTPSSetting, err := cloudflare.NewZoneSetting(ctx, e.newResourceName("always-https", "tls", 64), &cloudflare.ZoneSettingArgs{
 		ZoneId:    zone.ID(),
 		SettingId: pulumi.String("always_use_https"),
@@ -63,21 +67,6 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 	}, pulumi.Parent(e))
 	if err != nil {
 		return nil, fmt.Errorf("failed to configure Always Use HTTPS: %w", err)
-	}
-
-	// 5. Automatic HTTPS Rewrites
-	httpsRewritesSetting, err := cloudflare.NewZoneSetting(ctx, e.newResourceName("https-rewrites", "tls", 64), &cloudflare.ZoneSettingArgs{
-		ZoneId:    zone.ID(),
-		SettingId: pulumi.String("automatic_https_rewrites"),
-		Value: e.AutoHTTPSRewrites.ApplyT(func(enabled bool) string {
-			if enabled {
-				return "on"
-			}
-			return "off"
-		}).(pulumi.StringOutput),
-	}, pulumi.Parent(e))
-	if err != nil {
-		return nil, fmt.Errorf("failed to configure Automatic HTTPS Rewrites: %w", err)
 	}
 
 	// 6. Automatic universal certificates for all domains.
@@ -97,6 +86,5 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 		minTLSSetting,
 		tls13Setting,
 		alwaysHTTPSSetting,
-		httpsRewritesSetting,
 	}, nil
 }

@@ -21,17 +21,6 @@ func (e *EdgeProtection) createRedirectRules(ctx *pulumi.Context, zone *cloudfla
 		Phase:       pulumi.String("http_request_dynamic_redirect"),
 		Description: pulumi.String("Force HTTPS and handle redirects"),
 		Rules: cloudflare.RulesetRuleArray{
-			// Force HTTPS for all HTTP traffic (replaces AlwaysUseHttps page rule)
-			// See: https://developers.cloudflare.com/ssl/edge-certificates/additional-options/automatic-https-rewrites/
-			&cloudflare.RulesetRuleArgs{
-				Action:      pulumi.String("redirect"),
-				Expression:  pulumi.String("not ssl"),
-				Description: pulumi.String("Force HTTPS for all HTTP requests"),
-				ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
-					AutomaticHttpsRewrites: pulumi.Bool(true),
-				},
-				Enabled: pulumi.Bool(true),
-			},
 
 			// Redirect www to root
 			// See: https://developers.cloudflare.com/rules/url-forwarding/examples/redirect-www-to-root/
