@@ -41,7 +41,6 @@ type EdgeProtection struct {
 	rootDNSRecord      *cloudflare.DnsRecord
 	zoneSettings       []*cloudflare.ZoneSetting
 	rateLimitRuleset   *cloudflare.Ruleset
-	ddosL4Ruleset      *cloudflare.Ruleset
 	ddosL7Ruleset      *cloudflare.Ruleset
 	wafManagedRuleset  *cloudflare.Ruleset
 	wafCustomRuleset   *cloudflare.Ruleset
@@ -111,7 +110,6 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		"cloudflare_frontend_dns_record_id": edgeProtection.frontendDNSRecord.ID(),
 		// "cloudflare_root_dns_record_id":    edgeProtection.rootDNSRecord.ID(),
 		"cloudflare_rate_limit_ruleset_id": edgeProtection.rateLimitRuleset.ID(),
-		"cloudflare_ddos_l4_ruleset_id":    edgeProtection.ddosL4Ruleset.ID(),
 		"cloudflare_ddos_l7_ruleset_id":    edgeProtection.ddosL7Ruleset.ID(),
 		"cloudflare_waf_custom_ruleset_id": edgeProtection.wafCustomRuleset.ID(),
 		"cloudflare_cache_ruleset_id":      edgeProtection.cacheRuleset.ID(),
@@ -156,11 +154,10 @@ func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 	e.rateLimitRuleset = rateLimitRuleset
 
 	// 5. Create DDoS protection rules
-	ddosL4Ruleset, ddosL7Ruleset, err := e.createDDoSProtectionRules(ctx, zone)
+	ddosL7Ruleset, err := e.createDDoSProtectionRules(ctx, zone)
 	if err != nil {
 		return fmt.Errorf("failed to create DDoS protection rules: %w", err)
 	}
-	e.ddosL4Ruleset = ddosL4Ruleset
 	e.ddosL7Ruleset = ddosL7Ruleset
 
 	// 6. Create WAF managed rules
@@ -192,7 +189,6 @@ func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 		redirectRuleset.Rules,
 		configRuleset.Rules,
 		wafCustomRuleset.Rules,
-		ddosL4Ruleset.Rules,
 		ddosL7Ruleset.Rules,
 		rateLimitRuleset.Rules,
 	).ApplyT(func(rules []interface{}) error {
@@ -234,11 +230,6 @@ func (e *EdgeProtection) GetZoneSettings() []*cloudflare.ZoneSetting {
 // GetRateLimitRuleset returns the rate limit ruleset resource.
 func (e *EdgeProtection) GetRateLimitRuleset() *cloudflare.Ruleset {
 	return e.rateLimitRuleset
-}
-
-// GetDDoSL4Ruleset returns the DDoS L4 protection ruleset resource.
-func (e *EdgeProtection) GetDDoSL4Ruleset() *cloudflare.Ruleset {
-	return e.ddosL4Ruleset
 }
 
 // GetDDoSL7Ruleset returns the DDoS L7 protection ruleset resource.

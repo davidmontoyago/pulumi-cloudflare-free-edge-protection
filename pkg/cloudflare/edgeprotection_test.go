@@ -513,27 +513,6 @@ func TestNewEdgeProtection_DDoSProtectionRulesets(t *testing.T) {
 		edgeProtection, err := edge.NewEdgeProtection(ctx, "test-ddos-protection", args)
 		require.NoError(t, err)
 
-		// Verify DDoS L4 ruleset is created
-		ddosL4Ruleset := edgeProtection.GetDDoSL4Ruleset()
-		require.NotNil(t, ddosL4Ruleset, "DDoS L4 ruleset should not be nil")
-
-		// Verify DDoS L4 properties
-		phaseCh := make(chan string, 1)
-		defer close(phaseCh)
-		ddosL4Ruleset.Phase.ApplyT(func(phase string) error {
-			phaseCh <- phase
-			return nil
-		})
-		assert.Equal(t, "ddos_l4", <-phaseCh)
-
-		nameCh := make(chan string, 1)
-		defer close(nameCh)
-		ddosL4Ruleset.Name.ApplyT(func(name string) error {
-			nameCh <- name
-			return nil
-		})
-		assert.Equal(t, "DDoS L4 Protection", <-nameCh)
-
 		// Verify DDoS L7 ruleset is created
 		ddosL7Ruleset := edgeProtection.GetDDoSL7Ruleset()
 		require.NotNil(t, ddosL7Ruleset, "DDoS L7 ruleset should not be nil")
@@ -554,11 +533,6 @@ func TestNewEdgeProtection_DDoSProtectionRulesets(t *testing.T) {
 			return nil
 		})
 		assert.Equal(t, "DDoS L7 Protection", <-nameCh2)
-
-		ddosL4Ruleset.Rules.ApplyT(func(rules []cloudflare.RulesetRule) error {
-			assert.Len(t, rules, 1, "DDoS L4 ruleset should have 1 rule")
-			return nil
-		})
 
 		ddosL7Ruleset.Rules.ApplyT(func(rules []cloudflare.RulesetRule) error {
 			assert.Len(t, rules, 1, "DDoS L7 ruleset should have 1 rule")
