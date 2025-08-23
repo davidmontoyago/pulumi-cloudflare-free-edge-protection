@@ -45,7 +45,7 @@ func (e *EdgeProtection) createDNSRecords(ctx *pulumi.Context, zone *cloudflare.
 			// cross-cloud DNS is resolved (E.g. In GCP Doman Mapping shows success).
 			Proxied: pulumi.Bool(!upstream.DisableProtection),
 			Ttl:     pulumi.Float64(1), // Automatic TTL when proxied
-		}, pulumi.Parent(e))
+		}, pulumi.Parent(e), pulumi.Protect(e.CloudflareZone.Protected))
 		if err != nil {
 			return nil, fmt.Errorf("failed to create upstream DNS record %s: %w", upstream.DomainURL, err)
 		}
