@@ -21,24 +21,20 @@ const (
 func TestLoadConfig_HappyPath(t *testing.T) {
 	// Set required environment variables
 	envVars := map[string]string{
-		"CLOUDFLARE_API_TOKEN":  testCloudflareAPIToken,
-		"CLOUDFLARE_ACCOUNT_ID": testCloudflareAccountID,
-		"BACKEND_URL":           testDomain,
-		"BACKEND_UPSTREAM_URL":  testBackendUpstreamURL,
-		"SECURITY_LEVEL":        "high",
-		"CACHE_LEVEL":           "basic",
-		"BROWSER_CACHE_TTL":     "7200",
+		"CLOUDFLARE_API_TOKEN":   testCloudflareAPIToken,
+		"CLOUDFLARE_ACCOUNT_ID":  testCloudflareAccountID,
+		"BACKEND_URL":            testDomain,
+		"BACKEND_UPSTREAM_URL":   testBackendUpstreamURL,
+		"SECURITY_LEVEL":         "high",
+		"BROWSER_CACHE_TTL":      "7200",
 		"EDGE_CACHE_TTL_SECONDS": "1296000",
-		"RATE_LIMIT_THRESHOLD":  "100",
-		"RATE_LIMIT_PERIOD":     "120",
-		"RATE_LIMIT_TIMEOUT":    "300",
-		"RATE_LIMIT_MODE":       "ban",
-		"SSL_MODE":              "strict",
-		"MIN_TLS_VERSION":       "1.3",
-		"ALWAYS_USE_HTTPS":      "false",
-		"TLS_13_ENABLED":        "false",
-		"BROWSER_CHECK_ENABLED": "false",
-		"AUTO_HTTPS_REWRITES":   "false",
+		"RATE_LIMIT_THRESHOLD":   "100",
+		"RATE_LIMIT_MODE":        "block",
+		"TLS_ENCRYPTION_MODE":    "strict",
+		"MIN_TLS_VERSION":        "1.3",
+		"ALWAYS_USE_HTTPS":       "false",
+		"TLS_13_ENABLED":         "false",
+		"BROWSER_CHECK_ENABLED":  "false",
 	}
 
 	// Set environment variables
@@ -66,13 +62,12 @@ func TestLoadConfig_HappyPath(t *testing.T) {
 	assert.Equal(t, 7200, config.BrowserCacheTTL)
 	assert.Equal(t, 1296000, config.EdgeCacheTTLSeconds)
 	assert.Equal(t, 100, config.RateLimitThreshold)
-	assert.Equal(t, "ban", config.RateLimitMode)
+	assert.Equal(t, "block", config.RateLimitMode)
 	assert.Equal(t, "strict", config.TLSEncryptionMode)
 	assert.Equal(t, "1.3", config.MinTLSVersion)
 	assert.False(t, config.AlwaysUseHTTPS)
 	assert.False(t, config.TLS13Enabled)
 	assert.False(t, config.BrowserCheckEnabled)
-	assert.False(t, config.AutoHTTPSRewrites)
 }
 
 func TestLoadConfig_WithDefaults(t *testing.T) {
@@ -116,7 +111,6 @@ func TestLoadConfig_WithDefaults(t *testing.T) {
 	assert.True(t, config.AlwaysUseHTTPS)
 	assert.True(t, config.TLS13Enabled)
 	assert.True(t, config.BrowserCheckEnabled)
-	assert.True(t, config.AutoHTTPSRewrites)
 }
 
 func TestLoadConfig_MissingRequiredFields(t *testing.T) {
@@ -231,5 +225,4 @@ func TestToEdgeProtectionArgs(t *testing.T) {
 	assert.NotNil(t, args.AlwaysUseHTTPS)
 	assert.NotNil(t, args.TLS13Enabled)
 	assert.NotNil(t, args.BrowserCheckEnabled)
-	assert.NotNil(t, args.AutoHTTPSRewrites)
 }

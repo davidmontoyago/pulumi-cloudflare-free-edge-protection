@@ -104,7 +104,6 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 			AlwaysUseHTTPS:      pulumi.Bool(true),
 			TLS13Enabled:        pulumi.Bool(true),
 			BrowserCheckEnabled: pulumi.Bool(true),
-			AutoHTTPSRewrites:   pulumi.Bool(true),
 			Labels: map[string]string{
 				"environment": "test",
 				"team":        "edge-protection",
@@ -334,14 +333,6 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 			return nil
 		})
 		assert.True(t, <-browserCheckEnabledCh, "Browser check should default to enabled")
-
-		autoHTTPSRewritesCh := make(chan bool, 1)
-		defer close(autoHTTPSRewritesCh)
-		edgeProtection.AutoHTTPSRewrites.ApplyT(func(enabled bool) error {
-			autoHTTPSRewritesCh <- enabled
-			return nil
-		})
-		assert.True(t, <-autoHTTPSRewritesCh, "Auto HTTPS rewrites should default to enabled")
 
 		return nil
 	}, pulumi.WithMocks("project", "stack", &edgeProtectionMocks{}))

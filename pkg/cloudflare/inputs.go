@@ -72,8 +72,6 @@ type EdgeProtectionArgs struct {
 	TLS13Enabled pulumi.BoolInput
 	// Whether to enable browser check for bot protection (optional, defaults to true)
 	BrowserCheckEnabled pulumi.BoolInput
-	// Whether to enable automatic HTTPS rewrites (optional, defaults to true)
-	AutoHTTPSRewrites pulumi.BoolInput
 	// Additional labels to apply to resources
 	Labels map[string]string
 }

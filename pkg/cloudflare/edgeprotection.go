@@ -26,7 +26,6 @@ type EdgeProtection struct {
 	AlwaysUseHTTPS           pulumi.BoolOutput
 	TLS13Enabled             pulumi.BoolOutput
 	BrowserCheckEnabled      pulumi.BoolOutput
-	AutoHTTPSRewrites        pulumi.BoolOutput
 	Labels                   map[string]string
 
 	name string
@@ -68,7 +67,6 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		AlwaysUseHTTPS:           setDefaultBool(args.AlwaysUseHTTPS, true),
 		TLS13Enabled:             setDefaultBool(args.TLS13Enabled, true),
 		BrowserCheckEnabled:      setDefaultBool(args.BrowserCheckEnabled, true),
-		AutoHTTPSRewrites:        setDefaultBool(args.AutoHTTPSRewrites, true),
 		Labels:                   args.Labels,
 
 		name: name,

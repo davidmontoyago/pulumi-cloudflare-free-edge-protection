@@ -23,12 +23,11 @@ type Config struct {
 	EdgeCacheTTLSeconds int    `envconfig:"EDGE_CACHE_TTL_SECONDS" default:"2419200"`
 	RateLimitThreshold  int    `envconfig:"RATE_LIMIT_THRESHOLD" default:"60"`
 	RateLimitMode       string `envconfig:"RATE_LIMIT_MODE" default:"block"`
-	TLSEncryptionMode   string `envconfig:"SSL_MODE" default:"strict"`
+	TLSEncryptionMode   string `envconfig:"TLS_ENCRYPTION_MODE" default:"strict"`
 	MinTLSVersion       string `envconfig:"MIN_TLS_VERSION" default:"1.2"`
 	AlwaysUseHTTPS      bool   `envconfig:"ALWAYS_USE_HTTPS" default:"true"`
 	TLS13Enabled        bool   `envconfig:"TLS_13_ENABLED" default:"true"`
 	BrowserCheckEnabled bool   `envconfig:"BROWSER_CHECK_ENABLED" default:"true"`
-	AutoHTTPSRewrites   bool   `envconfig:"AUTO_HTTPS_REWRITES" default:"true"`
 }
 
 // LoadConfig loads configuration from environment variables
@@ -49,13 +48,11 @@ func LoadConfig() (*Config, error) {
 	log.Printf("  Browser Cache TTL: %d seconds", config.BrowserCacheTTL)
 	log.Printf("  Edge Cache TTL: %d seconds", config.EdgeCacheTTLSeconds)
 	log.Printf("  Rate Limit Threshold: %d requests", config.RateLimitThreshold)
-	log.Printf("  Rate Limit Mode: %s", config.RateLimitMode)
-	log.Printf("  SSL Mode: %s", config.TLSEncryptionMode)
+	log.Printf("  TLS Encryption Mode: %s", config.TLSEncryptionMode)
 	log.Printf("  Min TLS Version: %s", config.MinTLSVersion)
 	log.Printf("  Always Use HTTPS: %t", config.AlwaysUseHTTPS)
 	log.Printf("  TLS 1.3 Enabled: %t", config.TLS13Enabled)
 	log.Printf("  Browser Check Enabled: %t", config.BrowserCheckEnabled)
-	log.Printf("  Auto HTTPS Rewrites: %t", config.AutoHTTPSRewrites)
 
 	return &config, nil
 }
@@ -83,7 +80,6 @@ func (c *Config) ToEdgeProtectionArgs() *cloudflare.EdgeProtectionArgs {
 		AlwaysUseHTTPS:      pulumi.Bool(c.AlwaysUseHTTPS),
 		TLS13Enabled:        pulumi.Bool(c.TLS13Enabled),
 		BrowserCheckEnabled: pulumi.Bool(c.BrowserCheckEnabled),
-		AutoHTTPSRewrites:   pulumi.Bool(c.AutoHTTPSRewrites),
 	}
 
 	return args
