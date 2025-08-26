@@ -13,7 +13,7 @@ type EdgeProtection struct {
 	pulumi.ResourceState
 
 	Upstreams                []Upstream
-	CloudflareZone           CloudflareZone
+	CloudflareZone           Zone
 	SecurityLevel            pulumi.StringOutput
 	BrowserCacheTTL          pulumi.IntOutput
 	EdgeCacheTTLSeconds      pulumi.IntOutput
@@ -170,6 +170,7 @@ func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 	).ApplyT(func(rules []interface{}) error {
 		freeRules := flattenRulesetRules(rules)
 		e.freeTierRulesCount = pulumi.Int(len(freeRules)).ToIntOutput()
+
 		return nil
 	})
 

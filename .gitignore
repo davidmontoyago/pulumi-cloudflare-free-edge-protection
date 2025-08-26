@@ -16,6 +16,7 @@ go.work
 
 # Build directory
 build/
+vendor/
 
 # IDE files
 .vscode/
@@ -35,3 +36,5 @@ Pulumi.*.yaml
 .env.local
 
 coverage*
+
+*.patch

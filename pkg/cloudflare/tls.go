@@ -43,6 +43,7 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 			if enabled {
 				return "on"
 			}
+
 			return "off"
 		}).(pulumi.StringOutput),
 	}, pulumi.Parent(e))
@@ -62,6 +63,7 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 			if enabled {
 				return "on"
 			}
+
 			return "off"
 		}).(pulumi.StringOutput),
 	}, pulumi.Parent(e))

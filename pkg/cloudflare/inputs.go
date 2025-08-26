@@ -26,8 +26,8 @@ type Upstream struct {
 	DisableProtection bool
 }
 
-// CloudflareZone contains configuration for the zone to deploy the edge protection stack to.
-type CloudflareZone struct {
+// Zone contains configuration for the zone to deploy the edge protection stack to.
+type Zone struct {
 	// Cloudflare Account ID. Required.
 	CloudflareAccountID string
 	// Whether to protect the zone from deletion.
@@ -44,7 +44,7 @@ type EdgeProtectionArgs struct {
 	// A DNS record will be created for each upstream in the Cloudflare zone.
 	Upstreams []Upstream
 	// Configuration for the Cloudflare zone to deploy the edge protection stack to.
-	CloudflareZone CloudflareZone
+	CloudflareZone Zone
 	// TODO link to docs
 	// Security level for Cloudflare protection (optional, defaults to "medium")
 	// Valid values: "off", "essentially_off", "low", "medium", "high", "under_attack"

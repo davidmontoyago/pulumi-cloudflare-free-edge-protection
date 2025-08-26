@@ -66,7 +66,7 @@ func (c *Config) ToEdgeProtectionArgs() *cloudflare.EdgeProtectionArgs {
 				CanonicalNameURL: c.BackendUpstreamURL,
 			},
 		},
-		CloudflareZone: cloudflare.CloudflareZone{
+		CloudflareZone: cloudflare.Zone{
 			CloudflareAccountID: c.CloudflareAccountID,
 			Protected:           true,
 		},

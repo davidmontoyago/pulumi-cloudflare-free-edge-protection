@@ -1,3 +1,4 @@
+// Package main demonstrates how to use the Cloudflare edge protection component.
 package main
 
 import (

@@ -32,7 +32,7 @@ cloudflareEdgeProxy, err := cloudflare.NewEdgeProtection(ctx, "my-endpoint-edge-
       DisableProtection: false,
     },
   },
-  CloudflareZone: cloudflare.CloudflareZone{
+  CloudflareZone: cloudflare.Zone{
     CloudflareAccountID: os.Getenv("CLOUDFLARE_ACCOUNT_ID"),
     Protected:           true,
   },

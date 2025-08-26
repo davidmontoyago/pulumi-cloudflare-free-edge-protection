@@ -31,7 +31,7 @@ func (e *EdgeProtection) createZone(ctx *pulumi.Context) (*cloudflare.Zone, erro
 
 // createDNSRecords creates DNS records pointing to backend and frontend services.
 func (e *EdgeProtection) createDNSRecords(ctx *pulumi.Context, zone *cloudflare.Zone) ([]*cloudflare.DnsRecord, error) {
-	var upstreamRecords []*cloudflare.DnsRecord
+	upstreamRecords := make([]*cloudflare.DnsRecord, 0, len(e.Upstreams))
 	for _, upstream := range e.Upstreams {
 		recordName := strings.Split(upstream.DomainURL, ".")[0]
 		recordResourceName := e.newResourceName(fmt.Sprintf("upstream-%s", recordName), "dns", 64)

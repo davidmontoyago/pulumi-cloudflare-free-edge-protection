@@ -17,6 +17,7 @@ const (
 	testTopLevelDomain      = "path2prod.dev" // Extracted from testDomain
 	testBackendUpstreamURL  = "ghs.googlehosted.com"
 	testCloudflareAccountID = "test-cloudflare-account-id-123"
+	testZoneID              = "test-zone-id-123"
 )
 
 type edgeProtectionMocks struct{}
@@ -36,10 +37,10 @@ func (m *edgeProtectionMocks) NewResource(args pulumi.MockResourceArgs) (string,
 			"ns1.cloudflare.com",
 			"ns2.cloudflare.com",
 		}
-		outputs["id"] = "test-zone-id-123"
+		outputs["id"] = testZoneID
 
 	case "cloudflare:index/dnsRecord:DnsRecord":
-		outputs["zoneId"] = "test-zone-id-123"
+		outputs["zoneId"] = testZoneID
 		outputs["data"] = map[string]interface{}{
 			// TODO which is the correct field?
 			"target": args.Inputs["content"],
@@ -47,27 +48,27 @@ func (m *edgeProtectionMocks) NewResource(args pulumi.MockResourceArgs) (string,
 		}
 
 	case "cloudflare:index/zoneSetting:ZoneSetting":
-		outputs["zoneId"] = "test-zone-id-123"
+		outputs["zoneId"] = testZoneID
 		outputs["name"] = args.Inputs["settingId"]
 
 	case "cloudflare:index/zoneSettingsOverride:ZoneSettingsOverride":
-		outputs["zoneId"] = "test-zone-id-123"
+		outputs["zoneId"] = testZoneID
 
 	case "cloudflare:index/filter:Filter":
-		outputs["zoneId"] = "test-zone-id-123"
+		outputs["zoneId"] = testZoneID
 
 	case "cloudflare:index/firewallRule:FirewallRule":
-		outputs["zoneId"] = "test-zone-id-123"
+		outputs["zoneId"] = testZoneID
 		outputs["filterId"] = "test-filter-id-123"
 
 	case "cloudflare:index/rateLimit:RateLimit":
-		outputs["zoneId"] = "test-zone-id-123"
+		outputs["zoneId"] = testZoneID
 
 	case "cloudflare:index/pageRule:PageRule":
-		outputs["zoneId"] = "test-zone-id-123"
+		outputs["zoneId"] = testZoneID
 
 	case "cloudflare:index/ruleset:Ruleset":
-		outputs["zoneId"] = "test-zone-id-123"
+		outputs["zoneId"] = testZoneID
 	}
 
 	return args.Name + "_id", resource.NewPropertyMapFromMap(outputs), nil
@@ -90,7 +91,7 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 					DisableProtection: false,
 				},
 			},
-			CloudflareZone: edge.CloudflareZone{
+			CloudflareZone: edge.Zone{
 				CloudflareAccountID: testCloudflareAccountID,
 				Protected:           false,
 			},
@@ -125,6 +126,7 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 		defer close(securityLevelCh)
 		edgeProtection.SecurityLevel.ApplyT(func(level string) error {
 			securityLevelCh <- level
+
 			return nil
 		})
 		assert.Equal(t, "medium", <-securityLevelCh, "Security level should match")
@@ -134,6 +136,7 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 		defer close(browserCacheTTLCh)
 		edgeProtection.BrowserCacheTTL.ApplyT(func(ttl int) error {
 			browserCacheTTLCh <- ttl
+
 			return nil
 		})
 		assert.Equal(t, 14400, <-browserCacheTTLCh, "Browser cache TTL should match")
@@ -143,6 +146,7 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 		defer close(edgeCacheTTLCh)
 		edgeProtection.EdgeCacheTTLSeconds.ApplyT(func(ttl int) error {
 			edgeCacheTTLCh <- ttl
+
 			return nil
 		})
 		assert.Equal(t, 2419200, <-edgeCacheTTLCh, "Edge cache TTL should match")
@@ -152,6 +156,7 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 		defer close(rateLimitThresholdCh)
 		edgeProtection.RateLimitThreshold.ApplyT(func(threshold int) error {
 			rateLimitThresholdCh <- threshold
+
 			return nil
 		})
 		assert.Equal(t, 60, <-rateLimitThresholdCh, "Rate limit threshold should match")
@@ -161,6 +166,7 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 		defer close(tlsModeCh)
 		edgeProtection.TLSEncryptionMode.ApplyT(func(mode string) error {
 			tlsModeCh <- mode
+
 			return nil
 		})
 		assert.Equal(t, "full", <-tlsModeCh, "SSL mode should match")
@@ -174,6 +180,7 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 		defer close(zoneNameCh)
 		zone.Name.ApplyT(func(zoneName string) error {
 			zoneNameCh <- zoneName
+
 			return nil
 		})
 		assert.Equal(t, testTopLevelDomain, <-zoneNameCh, "Zone name should match top-level domain")
@@ -188,6 +195,7 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 		defer close(recordNameCh)
 		upstreamRecords[0].Name.ApplyT(func(name string) error {
 			recordNameCh <- name
+
 			return nil
 		})
 		assert.Equal(t, testDomain, <-recordNameCh, "Upstream DNS record name should match domain")
@@ -196,6 +204,7 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 		defer close(recordValueCh)
 		upstreamRecords[0].Data.ApplyT(func(value *cloudflare.DnsRecordData) error {
 			recordValueCh <- *value.Target
+
 			return nil
 		})
 		assert.Equal(t, testBackendUpstreamURL, <-recordValueCh, "Upstream DNS record target should match upstream URL")
@@ -228,7 +237,7 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 					CanonicalNameURL: testBackendUpstreamURL,
 				},
 			},
-			CloudflareZone: edge.CloudflareZone{
+			CloudflareZone: edge.Zone{
 				CloudflareAccountID: testCloudflareAccountID,
 			},
 			// Using defaults for other fields
@@ -242,6 +251,7 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 		defer close(securityLevelCh)
 		edgeProtection.SecurityLevel.ApplyT(func(level string) error {
 			securityLevelCh <- level
+
 			return nil
 		})
 		assert.Equal(t, "medium", <-securityLevelCh, "Security level should default to 'medium'")
@@ -250,6 +260,7 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 		defer close(browserCacheTTLCh)
 		edgeProtection.BrowserCacheTTL.ApplyT(func(ttl int) error {
 			browserCacheTTLCh <- ttl
+
 			return nil
 		})
 		assert.Equal(t, 14400, <-browserCacheTTLCh, "Browser cache TTL should default to 14400")
@@ -258,6 +269,7 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 		defer close(edgeCacheTTLCh)
 		edgeProtection.EdgeCacheTTLSeconds.ApplyT(func(ttl int) error {
 			edgeCacheTTLCh <- ttl
+
 			return nil
 		})
 		assert.Equal(t, 2419200, <-edgeCacheTTLCh, "Edge cache TTL should default to 2419200")
@@ -266,6 +278,7 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 		defer close(rateLimitThresholdCh)
 		edgeProtection.RateLimitThreshold.ApplyT(func(threshold int) error {
 			rateLimitThresholdCh <- threshold
+
 			return nil
 		})
 		assert.Equal(t, 60, <-rateLimitThresholdCh, "Rate limit threshold should default to 60")
@@ -274,6 +287,7 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 		defer close(rateLimitPeriodCh)
 		edgeProtection.RateLimitPeriodSeconds.ApplyT(func(period int) error {
 			rateLimitPeriodCh <- period
+
 			return nil
 		})
 		assert.Equal(t, 10, <-rateLimitPeriodCh, "Rate limit period should default to 10")
@@ -282,6 +296,7 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 		defer close(rateLimitTimeoutCh)
 		edgeProtection.MitigationTimeoutSeconds.ApplyT(func(timeout int) error {
 			rateLimitTimeoutCh <- timeout
+
 			return nil
 		})
 		assert.Equal(t, 10, <-rateLimitTimeoutCh, "Rate limit timeout should default to 10")
@@ -290,6 +305,7 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 		defer close(rateLimitModeCh)
 		edgeProtection.RateLimitMode.ApplyT(func(mode string) error {
 			rateLimitModeCh <- mode
+
 			return nil
 		})
 		assert.Equal(t, "block", <-rateLimitModeCh, "Rate limit mode should default to 'block'")
@@ -298,6 +314,7 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 		defer close(tlsModeCh)
 		edgeProtection.TLSEncryptionMode.ApplyT(func(mode string) error {
 			tlsModeCh <- mode
+
 			return nil
 		})
 		assert.Equal(t, "strict", <-tlsModeCh, "SSL mode should default to 'strict'")
@@ -306,6 +323,7 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 		defer close(minTLSVersionCh)
 		edgeProtection.MinTLSVersion.ApplyT(func(version string) error {
 			minTLSVersionCh <- version
+
 			return nil
 		})
 		assert.Equal(t, "1.2", <-minTLSVersionCh, "Min TLS version should default to '1.2'")
@@ -314,6 +332,7 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 		defer close(alwaysUseHTTPSCh)
 		edgeProtection.AlwaysUseHTTPS.ApplyT(func(enabled bool) error {
 			alwaysUseHTTPSCh <- enabled
+
 			return nil
 		})
 		assert.True(t, <-alwaysUseHTTPSCh, "Always use HTTPS should default to true")
@@ -322,6 +341,7 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 		defer close(tls13EnabledCh)
 		edgeProtection.TLS13Enabled.ApplyT(func(enabled bool) error {
 			tls13EnabledCh <- enabled
+
 			return nil
 		})
 		assert.True(t, <-tls13EnabledCh, "TLS 1.3 should default to enabled")
@@ -330,6 +350,7 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 		defer close(browserCheckEnabledCh)
 		edgeProtection.BrowserCheckEnabled.ApplyT(func(enabled bool) error {
 			browserCheckEnabledCh <- enabled
+
 			return nil
 		})
 		assert.True(t, <-browserCheckEnabledCh, "Browser check should default to enabled")
@@ -353,7 +374,7 @@ func TestNewEdgeProtection_RequiredFields(t *testing.T) {
 		{
 			name: "missing upstreams",
 			args: &edge.EdgeProtectionArgs{
-				CloudflareZone: edge.CloudflareZone{
+				CloudflareZone: edge.Zone{
 					CloudflareAccountID: testCloudflareAccountID,
 				},
 			},
@@ -368,7 +389,7 @@ func TestNewEdgeProtection_RequiredFields(t *testing.T) {
 						CanonicalNameURL: testBackendUpstreamURL,
 					},
 				},
-				CloudflareZone: edge.CloudflareZone{
+				CloudflareZone: edge.Zone{
 					CloudflareAccountID: "",
 				},
 			},
@@ -383,9 +404,11 @@ func TestNewEdgeProtection_RequiredFields(t *testing.T) {
 				_, err := edge.NewEdgeProtection(ctx, "test-edge-protection", testCase.args)
 				if err != nil {
 					assert.Contains(t, err.Error(), testCase.expectedErr)
+
 					return nil // Expected error, test passes
 				}
 				t.Errorf("Expected error containing '%s', but got no error", testCase.expectedErr)
+
 				return nil
 			}, pulumi.WithMocks("project", "stack", &edgeProtectionMocks{}))
 
@@ -406,7 +429,7 @@ func TestNewEdgeProtection_RateLimitRuleset(t *testing.T) {
 					CanonicalNameURL: testBackendUpstreamURL,
 				},
 			},
-			CloudflareZone: edge.CloudflareZone{
+			CloudflareZone: edge.Zone{
 				CloudflareAccountID: testCloudflareAccountID,
 			},
 			RateLimitThreshold: pulumi.Int(100),
@@ -424,6 +447,7 @@ func TestNewEdgeProtection_RateLimitRuleset(t *testing.T) {
 		defer close(nameCh)
 		rateLimitRuleset.Name.ApplyT(func(name string) error {
 			nameCh <- name
+
 			return nil
 		})
 		assert.Equal(t, "Rate Limiting Rules", <-nameCh)
@@ -432,6 +456,7 @@ func TestNewEdgeProtection_RateLimitRuleset(t *testing.T) {
 		defer close(kindCh)
 		rateLimitRuleset.Kind.ApplyT(func(kind string) error {
 			kindCh <- kind
+
 			return nil
 		})
 		assert.Equal(t, "zone", <-kindCh)
@@ -440,12 +465,14 @@ func TestNewEdgeProtection_RateLimitRuleset(t *testing.T) {
 		defer close(phaseCh)
 		rateLimitRuleset.Phase.ApplyT(func(phase string) error {
 			phaseCh <- phase
+
 			return nil
 		})
 		assert.Equal(t, "http_ratelimit", <-phaseCh)
 
 		rateLimitRuleset.Rules.ApplyT(func(rules []cloudflare.RulesetRule) error {
 			assert.Len(t, rules, 1, "Rate limit ruleset should have 1 rule under the free tier")
+
 			return nil
 		})
 
@@ -468,7 +495,7 @@ func TestNewEdgeProtection_DDoSProtectionRulesets(t *testing.T) {
 					CanonicalNameURL: testBackendUpstreamURL,
 				},
 			},
-			CloudflareZone: edge.CloudflareZone{
+			CloudflareZone: edge.Zone{
 				CloudflareAccountID: testCloudflareAccountID,
 			},
 		}
@@ -485,6 +512,7 @@ func TestNewEdgeProtection_DDoSProtectionRulesets(t *testing.T) {
 		defer close(phaseCh2)
 		ddosL7Ruleset.Phase.ApplyT(func(phase string) error {
 			phaseCh2 <- phase
+
 			return nil
 		})
 		assert.Equal(t, "ddos_l7", <-phaseCh2)
@@ -493,12 +521,14 @@ func TestNewEdgeProtection_DDoSProtectionRulesets(t *testing.T) {
 		defer close(nameCh2)
 		ddosL7Ruleset.Name.ApplyT(func(name string) error {
 			nameCh2 <- name
+
 			return nil
 		})
 		assert.Equal(t, "DDoS L7 Protection", <-nameCh2)
 
 		ddosL7Ruleset.Rules.ApplyT(func(rules []cloudflare.RulesetRule) error {
 			assert.Len(t, rules, 1, "DDoS L7 ruleset should have 1 rule")
+
 			return nil
 		})
 
@@ -521,7 +551,7 @@ func TestNewEdgeProtection_WAFCustomRuleset(t *testing.T) {
 					CanonicalNameURL: testBackendUpstreamURL,
 				},
 			},
-			CloudflareZone: edge.CloudflareZone{
+			CloudflareZone: edge.Zone{
 				CloudflareAccountID: testCloudflareAccountID,
 			},
 		}
@@ -538,6 +568,7 @@ func TestNewEdgeProtection_WAFCustomRuleset(t *testing.T) {
 		defer close(phaseCh)
 		wafCustomRuleset.Phase.ApplyT(func(phase string) error {
 			phaseCh <- phase
+
 			return nil
 		})
 		assert.Equal(t, "http_request_firewall_custom", <-phaseCh)
@@ -546,12 +577,14 @@ func TestNewEdgeProtection_WAFCustomRuleset(t *testing.T) {
 		defer close(nameCh)
 		wafCustomRuleset.Name.ApplyT(func(name string) error {
 			nameCh <- name
+
 			return nil
 		})
 		assert.Equal(t, "WAF Custom Security Rules", <-nameCh)
 
 		wafCustomRuleset.Rules.ApplyT(func(rules []cloudflare.RulesetRule) error {
 			assert.Len(t, rules, 5, "WAF custom ruleset should have 5 rules")
+
 			return nil
 		})
 
@@ -574,7 +607,7 @@ func TestNewEdgeProtection_CacheRuleset(t *testing.T) {
 					CanonicalNameURL: testBackendUpstreamURL,
 				},
 			},
-			CloudflareZone: edge.CloudflareZone{
+			CloudflareZone: edge.Zone{
 				CloudflareAccountID: testCloudflareAccountID,
 			},
 			BrowserCacheTTL:     pulumi.Int(7200),
@@ -593,6 +626,7 @@ func TestNewEdgeProtection_CacheRuleset(t *testing.T) {
 		defer close(phaseCh)
 		cacheRuleset.Phase.ApplyT(func(phase string) error {
 			phaseCh <- phase
+
 			return nil
 		})
 		assert.Equal(t, "http_request_cache_settings", <-phaseCh)
@@ -601,12 +635,14 @@ func TestNewEdgeProtection_CacheRuleset(t *testing.T) {
 		defer close(nameCh)
 		cacheRuleset.Name.ApplyT(func(name string) error {
 			nameCh <- name
+
 			return nil
 		})
 		assert.Equal(t, "Cache Optimization Rules", <-nameCh)
 
 		cacheRuleset.Rules.ApplyT(func(rules []cloudflare.RulesetRule) error {
 			assert.Len(t, rules, 3, "Cache ruleset should have 2 rules")
+
 			return nil
 		})
 
@@ -629,7 +665,7 @@ func TestNewEdgeProtection_RedirectRuleset(t *testing.T) {
 					CanonicalNameURL: testBackendUpstreamURL,
 				},
 			},
-			CloudflareZone: edge.CloudflareZone{
+			CloudflareZone: edge.Zone{
 				CloudflareAccountID: testCloudflareAccountID,
 			},
 		}
@@ -646,6 +682,7 @@ func TestNewEdgeProtection_RedirectRuleset(t *testing.T) {
 		defer close(phaseCh)
 		redirectRuleset.Phase.ApplyT(func(phase string) error {
 			phaseCh <- phase
+
 			return nil
 		})
 		assert.Equal(t, "http_request_dynamic_redirect", <-phaseCh)
@@ -654,12 +691,14 @@ func TestNewEdgeProtection_RedirectRuleset(t *testing.T) {
 		defer close(nameCh)
 		redirectRuleset.Name.ApplyT(func(name string) error {
 			nameCh <- name
+
 			return nil
 		})
 		assert.Equal(t, "HTTPS Redirect Rules", <-nameCh)
 
 		redirectRuleset.Rules.ApplyT(func(rules []cloudflare.RulesetRule) error {
 			assert.Len(t, rules, 2, "Redirect ruleset should have 2 rules per upstream")
+
 			return nil
 		})
 
@@ -682,7 +721,7 @@ func TestNewEdgeProtection_ConfigurationRuleset(t *testing.T) {
 					CanonicalNameURL: testBackendUpstreamURL,
 				},
 			},
-			CloudflareZone: edge.CloudflareZone{
+			CloudflareZone: edge.Zone{
 				CloudflareAccountID: testCloudflareAccountID,
 			},
 			SecurityLevel:       pulumi.String("high"),
@@ -701,6 +740,7 @@ func TestNewEdgeProtection_ConfigurationRuleset(t *testing.T) {
 		defer close(phaseCh)
 		configRuleset.Phase.ApplyT(func(phase string) error {
 			phaseCh <- phase
+
 			return nil
 		})
 		assert.Equal(t, "http_config_settings", <-phaseCh)
@@ -709,12 +749,14 @@ func TestNewEdgeProtection_ConfigurationRuleset(t *testing.T) {
 		defer close(nameCh)
 		configRuleset.Name.ApplyT(func(name string) error {
 			nameCh <- name
+
 			return nil
 		})
 		assert.Equal(t, "Configuration Rules", <-nameCh)
 
 		configRuleset.Rules.ApplyT(func(rules []cloudflare.RulesetRule) error {
 			assert.Len(t, rules, 1, "Configuration ruleset should have 1 rule")
+
 			return nil
 		})
 

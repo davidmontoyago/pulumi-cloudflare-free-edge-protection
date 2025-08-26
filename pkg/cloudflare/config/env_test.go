@@ -18,6 +18,7 @@ const (
 	testCloudflareAccountID = "test-cloudflare-account-id-123"
 )
 
+//nolint:paralleltest // Uses environment variables
 func TestLoadConfig_HappyPath(t *testing.T) {
 	// Set required environment variables
 	envVars := map[string]string{
@@ -70,6 +71,7 @@ func TestLoadConfig_HappyPath(t *testing.T) {
 	assert.False(t, config.BrowserCheckEnabled)
 }
 
+//nolint:paralleltest // Uses environment variables
 func TestLoadConfig_WithDefaults(t *testing.T) {
 	// Set only required environment variables
 	envVars := map[string]string{
@@ -113,6 +115,7 @@ func TestLoadConfig_WithDefaults(t *testing.T) {
 	assert.True(t, config.BrowserCheckEnabled)
 }
 
+//nolint:paralleltest // Uses environment variables
 func TestLoadConfig_MissingRequiredFields(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -180,6 +183,7 @@ func TestLoadConfig_MissingRequiredFields(t *testing.T) {
 	}
 }
 
+//nolint:paralleltest // Uses environment variables
 func TestToEdgeProtectionArgs(t *testing.T) {
 	// Set required environment variables
 	envVars := map[string]string{
