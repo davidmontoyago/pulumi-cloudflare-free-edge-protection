@@ -2,14 +2,24 @@
 
 [![Develop](https://github.com/davidmontoyago/pulumi-cloudflare-free-edge-protection/actions/workflows/develop.yaml/badge.svg)](https://github.com/davidmontoyago/pulumi-cloudflare-free-edge-protection/actions/workflows/develop.yaml) [![Go Coverage](https://raw.githubusercontent.com/wiki/davidmontoyago/pulumi-cloudflare-free-edge-protection/coverage.svg)](https://raw.githack.com/wiki/davidmontoyago/pulumi-cloudflare-free-edge-protection/coverage.html) [![Go Reference](https://pkg.go.dev/badge/github.com/davidmontoyago/pulumi-cloudflare-free-edge-protection.svg)](https://pkg.go.dev/github.com/davidmontoyago/pulumi-cloudflare-free-edge-protection)
 
-Cloudflare's internet-grade free tier protection with Pulumi and Go. Secure an endpoint running in any cloud via DNS integration.
+Pulumi component to setup internet-grade protection under the Cloudlflare free tier. Secure public endpoints in any cloud with Cloudflare's edge infrastructure.
+
+## Features
+- Traffic proxying through Cloudfare
+- L4 and L7 DDoS protection
+- Rate limits
+- WAF rules to block common attack patterns
+- TLS enforcement
+- Browser integrity checks
+- Cache web assets
+- [Challenge requests](https://developers.cloudflare.com/cloudflare-challenges/) based on threat score
 
 ### Pre-requisites
 - A cloudflare free tier account
 - A domain registered with cloudflare
+- Pulumi & Go
 
-### Getting Started
-
+## Getting Started
 ```
 go get github.com/davidmontoyago/pulumi-cloudflare-free-edge-protection
 ```
@@ -24,12 +34,10 @@ cloudflareEdgeProxy, err := cloudflare.NewEdgeProtection(ctx, "my-endpoint-edge-
     {
       DomainURL:         "myfrontend.mydomain.dev",
       CanonicalNameURL:  "ghs.googlehosted.com",
-      DisableProtection: false,
     },
     {
       DomainURL:         "mybackend.mydomain.dev",
       CanonicalNameURL:  "ghs.googlehosted.com",
-      DisableProtection: false,
     },
   },
   CloudflareZone: cloudflare.Zone{
@@ -45,7 +53,29 @@ if err != nil {
 }
 ```
 
-### Cloudflare free tier:
+## Architecture
+
+```
+            Internet
+                │
+                ▼
+    CNAME record proxied through
+      Cloudflare Global Network
+      (Anycast Edge Servers)
+                │
+                ▼
+          Upstream Cloud
+(e.g. for GCP, ghs.googlehosted.com)
+                │
+                ▼
+  Internal Cloud DNS Resolution
+                │
+                ▼
+      App Server Container
+    (e.g. Cloud Run instance)
+```
+
+### Cloudflare free tier
 
 - Unmetered application layer DDoS protection
 - IP-based rate limiting
@@ -62,3 +92,6 @@ Rules
 ### Upstream security
 
 Make sure the upstream services allow-list Cloudflare IPs to only allow traffic from the edge proxies.
+
+See:
+- https://developers.cloudflare.com/dns/proxy-status
