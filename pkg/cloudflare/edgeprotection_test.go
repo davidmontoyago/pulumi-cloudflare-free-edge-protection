@@ -585,6 +585,52 @@ func TestNewEdgeProtection_WAFCustomRuleset(t *testing.T) {
 		wafCustomRuleset.Rules.ApplyT(func(rules []cloudflare.RulesetRule) error {
 			assert.Len(t, rules, 5, "WAF custom ruleset should have 5 rules")
 
+			// Verify the first rule (path blocking rule) contains paths from all groups
+			firstRule := rules[0]
+			assert.Equal(t, "block", *firstRule.Action, "First rule should be a block action")
+
+			// Get the expression and verify it contains at least one path from each group
+			expression := *firstRule.Expression
+
+			// Test for WordPress paths
+			assert.Contains(t, expression, `(http.request.uri.path contains "/wp-admin/")`, "Expression should contain WordPress paths")
+
+			// Test for Database Management paths
+			assert.Contains(t, expression, `(http.request.uri.path contains "/phpmyadmin/")`, "Expression should contain database management paths")
+
+			// Test for Configuration File paths
+			assert.Contains(t, expression, `(http.request.uri.path contains "/.env")`, "Expression should contain configuration file paths")
+
+			// Test for Version Control paths
+			assert.Contains(t, expression, `(http.request.uri.path contains "/.git/")`, "Expression should contain version control paths")
+
+			// Test for Admin Panel paths
+			assert.Contains(t, expression, `(http.request.uri.path contains "/admin/")`, "Expression should contain admin panel paths")
+
+			// Test for Backup File paths
+			assert.Contains(t, expression, `(http.request.uri.path contains "/backup/")`, "Expression should contain backup file paths")
+
+			// Test for Development Testing paths
+			assert.Contains(t, expression, `(http.request.uri.path contains "/test/")`, "Expression should contain development testing paths")
+
+			// Test for System Information paths
+			assert.Contains(t, expression, `(http.request.uri.path contains "/proc/")`, "Expression should contain system information paths")
+
+			// Test for API Endpoint paths
+			assert.Contains(t, expression, `(http.request.uri.path contains "/api/v1/admin")`, "Expression should contain API endpoint paths")
+
+			// Test for Application Specific paths
+			assert.Contains(t, expression, `(http.request.uri.path contains "/app/")`, "Expression should contain application specific paths")
+
+			// Test for Server File paths
+			assert.Contains(t, expression, `(http.request.uri.path contains "/server-status")`, "Expression should contain server file paths")
+
+			// Test for CMS Specific paths
+			assert.Contains(t, expression, `(http.request.uri.path contains "/administrator/")`, "Expression should contain CMS specific paths")
+
+			// Test for Path Traversal patterns
+			assert.Contains(t, expression, `(http.request.uri.path contains "../")`, "Expression should contain path traversal patterns")
+
 			return nil
 		})
 

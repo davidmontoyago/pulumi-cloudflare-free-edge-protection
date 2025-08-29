@@ -20,20 +20,11 @@ func (e *EdgeProtection) createWAFCustomRules(ctx *pulumi.Context, zone *cloudfl
 		Phase:       pulumi.String("http_request_firewall_custom"),
 		Description: pulumi.String("Custom WAF rules for blocking common attacks and malicious traffic"),
 		Rules: cloudflare.RulesetRuleArray{
-			// Rule 1: Block common CMS attack patterns (WordPress, etc.)
-			// TODO add more paths and extensions
+			// Rule 1: Block common attack patterns and malicious paths
 			&cloudflare.RulesetRuleArgs{
-				Action: pulumi.String("block"),
-				Expression: pulumi.Sprintf("(%s)", strings.Join([]string{
-					`(http.request.uri.path contains "/wp-admin")`,
-					`(http.request.uri.path contains "/wp-login.php")`,
-					`(http.request.uri.path contains "/xmlrpc.php")`,
-					`(http.request.uri.path contains "/.env")`,
-					`(http.request.uri.path contains "/phpmyadmin")`,
-					`(http.request.uri.path contains "/config.php")`,
-					`(http.request.uri.path contains "/wp-config.php")`,
-				}, " or ")),
-				Description: pulumi.String("Block common CMS and config file access attempts"),
+				Action:      pulumi.String("block"),
+				Expression:  pulumi.String(generatePathBlockingExpression()),
+				Description: pulumi.String("Block common attack vectors and malicious path access attempts"),
 				Enabled:     pulumi.Bool(true),
 			},
 
@@ -106,4 +97,33 @@ func (e *EdgeProtection) createWAFCustomRules(ctx *pulumi.Context, zone *cloudfl
 	}
 
 	return wafCustomRuleset, nil
+}
+
+// generatePathBlockingExpression concatenates all malicious path lists and generates
+// a single WAF expression to block requests containing any of these paths
+func generatePathBlockingExpression() string {
+	// Concatenate all path slices from wafpaths.go
+	allPaths := make([]string, 0)
+	allPaths = append(allPaths, WordPressPaths...)
+	allPaths = append(allPaths, DatabaseManagementPaths...)
+	allPaths = append(allPaths, ConfigurationFilePaths...)
+	allPaths = append(allPaths, VersionControlPaths...)
+	allPaths = append(allPaths, AdminPanelPaths...)
+	allPaths = append(allPaths, BackupFilePaths...)
+	allPaths = append(allPaths, DevelopmentTestingPaths...)
+	allPaths = append(allPaths, SystemInformationPaths...)
+	allPaths = append(allPaths, APIEndpointPaths...)
+	allPaths = append(allPaths, ApplicationSpecificPaths...)
+	allPaths = append(allPaths, ServerFilePaths...)
+	allPaths = append(allPaths, CMSSpecificPaths...)
+	allPaths = append(allPaths, PathTraversalPatterns...)
+
+	// Generate expressions for each path
+	expressions := make([]string, len(allPaths))
+	for i, path := range allPaths {
+		expressions[i] = fmt.Sprintf(`(http.request.uri.path contains "%s")`, path)
+	}
+
+	// Join all expressions with "or" and wrap in parentheses
+	return fmt.Sprintf("(%s)", strings.Join(expressions, " or "))
 }
