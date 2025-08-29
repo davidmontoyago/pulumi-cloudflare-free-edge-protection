@@ -585,51 +585,63 @@ func TestNewEdgeProtection_WAFCustomRuleset(t *testing.T) {
 		wafCustomRuleset.Rules.ApplyT(func(rules []cloudflare.RulesetRule) error {
 			assert.Len(t, rules, 5, "WAF custom ruleset should have 5 rules")
 
-			// Verify the first rule (path blocking rule) contains paths from all groups
-			firstRule := rules[0]
-			assert.Equal(t, "block", *firstRule.Action, "First rule should be a block action")
+			// Verify Rule 1: CMS and WordPress specific paths
+			rule1 := rules[0]
+			assert.Equal(t, "block", *rule1.Action, "Rule 1 should be a block action")
+			assert.Contains(t, *rule1.Description, "CMS, WordPress, and application-specific", "Rule 1 should be for CMS/WordPress paths")
 
-			// Get the expression and verify it contains at least one path from each group
-			expression := *firstRule.Expression
+			rule1Expression := *rule1.Expression
+			assert.Contains(t, rule1Expression, `(http.request.uri.path contains "/wp-admin/")`, "Rule 1 should contain WordPress paths")
+			assert.Contains(t, rule1Expression, `(http.request.uri.path contains "/administrator/")`, "Rule 1 should contain CMS specific paths")
+			assert.Contains(t, rule1Expression, `(http.request.uri.path contains "/app/")`, "Rule 1 should contain application specific paths")
 
-			// Test for WordPress paths
-			assert.Contains(t, expression, `(http.request.uri.path contains "/wp-admin/")`, "Expression should contain WordPress paths")
+			// Verify Rule 2: System, configuration, version control paths AND malicious user agents
+			rule2 := rules[1]
+			assert.Equal(t, "block", *rule2.Action, "Rule 2 should be a block action")
+			assert.Contains(t, *rule2.Description, "system files, configuration, version control access, and malicious user agents", "Rule 2 should be for system/config paths and user agents")
 
-			// Test for Database Management paths
-			assert.Contains(t, expression, `(http.request.uri.path contains "/phpmyadmin/")`, "Expression should contain database management paths")
+			rule2Expression := *rule2.Expression
+			// Test path blocking expressions
+			assert.Contains(t, rule2Expression, `(http.request.uri.path contains "/.env")`, "Rule 2 should contain configuration file paths")
+			assert.Contains(t, rule2Expression, `(http.request.uri.path contains "/.git/")`, "Rule 2 should contain version control paths")
+			assert.Contains(t, rule2Expression, `(http.request.uri.path contains "/proc/")`, "Rule 2 should contain system information paths")
+			assert.Contains(t, rule2Expression, `(http.request.uri.path contains "../")`, "Rule 2 should contain path traversal patterns")
+			// Test user agent expressions
+			assert.Contains(t, rule2Expression, `(http.user_agent contains "sqlmap")`, "Rule 2 should contain malicious user agent sqlmap")
+			assert.Contains(t, rule2Expression, `(http.user_agent contains "nmap")`, "Rule 2 should contain malicious user agent nmap")
+			assert.Contains(t, rule2Expression, `(http.user_agent eq "")`, "Rule 2 should contain empty user agent check")
+			assert.Contains(t, rule2Expression, `(len(http.user_agent) < 10)`, "Rule 2 should contain short user agent check")
 
-			// Test for Configuration File paths
-			assert.Contains(t, expression, `(http.request.uri.path contains "/.env")`, "Expression should contain configuration file paths")
+			// Verify Rule 3: Admin panels, backup files, and sensitive areas
+			rule3 := rules[2]
+			assert.Equal(t, "block", *rule3.Action, "Rule 3 should be a block action")
+			assert.Contains(t, *rule3.Description, "admin panels, backup files, and sensitive", "Rule 3 should be for admin/backup paths")
 
-			// Test for Version Control paths
-			assert.Contains(t, expression, `(http.request.uri.path contains "/.git/")`, "Expression should contain version control paths")
+			rule3Expression := *rule3.Expression
+			assert.Contains(t, rule3Expression, `(http.request.uri.path contains "/admin/")`, "Rule 3 should contain admin panel paths")
+			assert.Contains(t, rule3Expression, `(http.request.uri.path contains "/backup/")`, "Rule 3 should contain backup file paths")
+			assert.Contains(t, rule3Expression, `(http.request.uri.path contains "/phpmyadmin/")`, "Rule 3 should contain database management paths")
 
-			// Test for Admin Panel paths
-			assert.Contains(t, expression, `(http.request.uri.path contains "/admin/")`, "Expression should contain admin panel paths")
+			// Verify Rule 4: Development, API, and server information paths
+			rule4 := rules[3]
+			assert.Equal(t, "block", *rule4.Action, "Rule 4 should be a block action")
+			assert.Contains(t, *rule4.Description, "development tools, API endpoints, and server", "Rule 4 should be for dev/API paths")
 
-			// Test for Backup File paths
-			assert.Contains(t, expression, `(http.request.uri.path contains "/backup/")`, "Expression should contain backup file paths")
+			rule4Expression := *rule4.Expression
+			assert.Contains(t, rule4Expression, `(http.request.uri.path contains "/test/")`, "Rule 4 should contain development testing paths")
+			assert.Contains(t, rule4Expression, `(http.request.uri.path contains "/api/v1/admin")`, "Rule 4 should contain API endpoint paths")
+			assert.Contains(t, rule4Expression, `(http.request.uri.path contains "/server-status")`, "Rule 4 should contain server file paths")
 
-			// Test for Development Testing paths
-			assert.Contains(t, expression, `(http.request.uri.path contains "/test/")`, "Expression should contain development testing paths")
+			// Verify Rule 5: Challenge dangerous HTTP methods and suspicious behavior
+			rule5 := rules[4]
+			assert.Equal(t, "managed_challenge", *rule5.Action, "Rule 5 should be a managed_challenge action")
+			assert.Contains(t, *rule5.Description, "dangerous HTTP methods and requests with SQL injection or XSS patterns", "Rule 5 should be for dangerous methods and suspicious behavior")
 
-			// Test for System Information paths
-			assert.Contains(t, expression, `(http.request.uri.path contains "/proc/")`, "Expression should contain system information paths")
-
-			// Test for API Endpoint paths
-			assert.Contains(t, expression, `(http.request.uri.path contains "/api/v1/admin")`, "Expression should contain API endpoint paths")
-
-			// Test for Application Specific paths
-			assert.Contains(t, expression, `(http.request.uri.path contains "/app/")`, "Expression should contain application specific paths")
-
-			// Test for Server File paths
-			assert.Contains(t, expression, `(http.request.uri.path contains "/server-status")`, "Expression should contain server file paths")
-
-			// Test for CMS Specific paths
-			assert.Contains(t, expression, `(http.request.uri.path contains "/administrator/")`, "Expression should contain CMS specific paths")
-
-			// Test for Path Traversal patterns
-			assert.Contains(t, expression, `(http.request.uri.path contains "../")`, "Expression should contain path traversal patterns")
+			rule5Expression := *rule5.Expression
+			assert.Contains(t, rule5Expression, `(http.request.method eq "TRACE")`, "Rule 5 should contain dangerous TRACE method")
+			assert.Contains(t, rule5Expression, `(http.request.method eq "DEBUG")`, "Rule 5 should contain dangerous DEBUG method")
+			assert.Contains(t, rule5Expression, `(http.request.uri.query contains "union select")`, "Rule 5 should contain SQL injection patterns")
+			assert.Contains(t, rule5Expression, `(http.request.uri.query contains "<script")`, "Rule 5 should contain XSS patterns")
 
 			return nil
 		})
