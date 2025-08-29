@@ -44,7 +44,7 @@ func (e *EdgeProtection) createRedirectRules(ctx *pulumi.Context, zone *cloudfla
 						PreserveQueryString: pulumi.Bool(true),
 						StatusCode:          pulumi.Float64(301),
 						TargetUrl: &cloudflare.RulesetRuleActionParametersFromValueTargetUrlArgs{
-							Value: pulumi.Sprintf(`https://%s${substring(request.uri,0,-1)}`, upstream.DomainURL),
+							Expression: pulumi.String(`substring(http.request.uri.path,0,-1)`),
 						},
 					},
 				},

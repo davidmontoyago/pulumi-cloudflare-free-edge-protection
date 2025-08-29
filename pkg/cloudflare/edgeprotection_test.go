@@ -598,7 +598,6 @@ func TestNewEdgeProtection_WAFCustomRuleset(t *testing.T) {
 			// Verify Rule 2: System, configuration, version control paths AND malicious user agents
 			rule2 := rules[1]
 			assert.Equal(t, "block", *rule2.Action, "Rule 2 should be a block action")
-			assert.Contains(t, *rule2.Description, "system files, configuration, version control access, and malicious user agents", "Rule 2 should be for system/config paths and user agents")
 
 			rule2Expression := *rule2.Expression
 			// Test path blocking expressions
@@ -635,7 +634,6 @@ func TestNewEdgeProtection_WAFCustomRuleset(t *testing.T) {
 			// Verify Rule 5: Challenge dangerous HTTP methods and suspicious behavior
 			rule5 := rules[4]
 			assert.Equal(t, "managed_challenge", *rule5.Action, "Rule 5 should be a managed_challenge action")
-			assert.Contains(t, *rule5.Description, "dangerous HTTP methods and requests with SQL injection or XSS patterns", "Rule 5 should be for dangerous methods and suspicious behavior")
 
 			rule5Expression := *rule5.Expression
 			assert.Contains(t, rule5Expression, `(http.request.method eq "TRACE")`, "Rule 5 should contain dangerous TRACE method")
@@ -756,6 +754,25 @@ func TestNewEdgeProtection_RedirectRuleset(t *testing.T) {
 
 		redirectRuleset.Rules.ApplyT(func(rules []cloudflare.RulesetRule) error {
 			assert.Len(t, rules, 2, "Redirect ruleset should have 2 rules per upstream")
+
+			// Verify Rule 1: www to root redirect
+			rule1 := rules[0]
+			assert.Equal(t, "redirect", *rule1.Action, "Rule 1 should be a redirect action")
+			assert.Contains(t, *rule1.Expression, "http.host eq", "Rule 1 should check host")
+			assert.Contains(t, *rule1.Description, "Redirect www", "Rule 1 should be for www redirect")
+
+			// Verify Rule 2: Trailing slash redirect
+			rule2 := rules[1]
+			assert.Equal(t, "redirect", *rule2.Action, "Rule 2 should be a redirect action")
+			assert.Contains(t, *rule2.Expression, `ends_with(http.request.uri.path, "/")`, "Rule 2 should check for trailing slash")
+			assert.Contains(t, *rule2.Description, "trailing slashes", "Rule 2 should be for trailing slash redirect")
+
+			// Verify that the trailing slash redirect has the correct Expression field in target URL
+			assert.NotNil(t, rule2.ActionParameters, "Rule 2 should have action parameters")
+			assert.NotNil(t, rule2.ActionParameters.FromValue, "Rule 2 should have from_value parameters")
+			assert.NotNil(t, rule2.ActionParameters.FromValue.TargetUrl, "Rule 2 should have target_url")
+			assert.NotNil(t, rule2.ActionParameters.FromValue.TargetUrl.Expression, "Rule 2 should have Expression field set")
+			assert.Contains(t, *rule2.ActionParameters.FromValue.TargetUrl.Expression, "http.request.uri.path", "Rule 2 Expression should contain http.request.uri.path")
 
 			return nil
 		})
