@@ -336,21 +336,23 @@ func generatePathExpression(paths []string) string {
 
 // generateUserAgentBlockingExpression creates WAF expression for blocking malicious user agents
 func generateUserAgentBlockingExpression() string {
-	// Create user agent expressions
-	userAgentExpressions := make([]string, len(MaliciousUserAgents))
-	for i, agent := range MaliciousUserAgents {
-		userAgentExpressions[i] = fmt.Sprintf(`(http.user_agent contains "%s")`, agent)
-	}
-
-	// Add additional user agent checks
+	// Additional user agent checks
 	additionalChecks := []string{
 		`(http.user_agent eq "")`,
 		`(len(http.user_agent) < 10)`,
 	}
 
-	// Combine all expressions
-	allExpressions := append(userAgentExpressions, additionalChecks...)
+	// Create slice with correct total capacity
+	totalExpressions := make([]string, 0, len(MaliciousUserAgents)+len(additionalChecks))
+
+	// Add user agent expressions
+	for _, agent := range MaliciousUserAgents {
+		totalExpressions = append(totalExpressions, fmt.Sprintf(`(http.user_agent contains "%s")`, agent))
+	}
+
+	// Add additional checks
+	totalExpressions = append(totalExpressions, additionalChecks...)
 
 	// Join all expressions with "or" and wrap in parentheses
-	return fmt.Sprintf("(%s)", strings.Join(allExpressions, " or "))
+	return fmt.Sprintf("(%s)", strings.Join(totalExpressions, " or "))
 }

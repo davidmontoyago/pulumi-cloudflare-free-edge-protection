@@ -1,0 +1,88 @@
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*
+.dockerignore
+
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+coverage
+
+# Temporary folders
+tmp/
+temp/
+
+# Documentation
+README.md
+*.md
+
+# Test files
+**/*.test.go
+test/
+tests/
+
+# Go specific files
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+go.work.sum
+
+# Go build artifacts
+bin/
+dist/
+build/
+
+# Go cache and temporary files
+vendor/
+
+# Go coverage files
+coverage.out
+coverage.html
+*.cover
+*.coverprofile
+
+# Go debug files
+debug
+debug.test
+
+# Go module cache (if vendored)
+pkg/

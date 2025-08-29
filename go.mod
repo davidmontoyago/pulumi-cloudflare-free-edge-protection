@@ -4,8 +4,8 @@ go 1.24.5
 
 require (
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/pulumi/pulumi-cloudflare/sdk/v6 v6.6.0
-	github.com/pulumi/pulumi/sdk/v3 v3.191.0
+	github.com/pulumi/pulumi-cloudflare/sdk/v6 v6.5.0
+	github.com/pulumi/pulumi/sdk/v3 v3.192.0
 	github.com/stretchr/testify v1.10.0
 )
 
@@ -89,7 +89,7 @@ require (
 	golang.org/x/term v0.34.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/tools v0.36.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250825161204-c5933d9347a5 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250826171959-ef028d996bc1 // indirect
 	google.golang.org/grpc v1.75.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
