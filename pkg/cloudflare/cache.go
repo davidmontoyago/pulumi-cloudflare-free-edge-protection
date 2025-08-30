@@ -43,6 +43,11 @@ func (e *EdgeProtection) createCacheRules(ctx *pulumi.Context, zone *cloudflare.
 					`(http.request.uri.path contains "/static/")`,
 					`(http.request.uri.path contains "/assets/")`,
 					`(http.request.uri.path contains "/public/")`,
+					`(http.request.uri.path contains "/fonts/")`,
+					`(http.request.headers["content-type"][0] eq "image/jpeg")`,
+					`(http.request.headers["content-type"][0] eq "image/png")`,
+					`(http.request.headers["content-type"][0] eq "image/gif")`,
+					`(http.request.headers["content-type"][0] eq "image/svg+xml")`,
 				}, " or ")),
 				Description: pulumi.String("Cache static assets aggressively"),
 				ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
