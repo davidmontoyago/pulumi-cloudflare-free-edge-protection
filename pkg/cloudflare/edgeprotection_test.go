@@ -69,6 +69,13 @@ func (m *edgeProtectionMocks) NewResource(args pulumi.MockResourceArgs) (string,
 
 	case "cloudflare:index/ruleset:Ruleset":
 		outputs["zoneId"] = testZoneID
+
+	case "cloudflare:index/notificationPolicy:NotificationPolicy":
+		outputs["accountId"] = testCloudflareAccountID
+		// Copy the mechanisms structure
+		if mechanisms, ok := args.Inputs["mechanisms"]; ok {
+			outputs["mechanisms"] = mechanisms
+		}
 	}
 
 	return args.Name + "_id", resource.NewPropertyMapFromMap(outputs), nil
@@ -854,6 +861,73 @@ func TestNewEdgeProtection_ConfigurationRuleset(t *testing.T) {
 
 		configRuleset.Rules.ApplyT(func(rules []cloudflare.RulesetRule) error {
 			assert.Len(t, rules, 1, "Configuration ruleset should have 1 rule")
+
+			return nil
+		})
+
+		return nil
+	}, pulumi.WithMocks("project", "stack", &edgeProtectionMocks{}))
+
+	if err != nil {
+		t.Fatalf("Pulumi WithMocks failed: %v", err)
+	}
+}
+
+func TestNewEdgeProtection_DDoSAttackNotifications(t *testing.T) {
+	t.Parallel()
+
+	testEmail := "admin@example.com"
+
+	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		args := &edge.EdgeProtectionArgs{
+			Upstreams: []edge.Upstream{
+				{
+					DomainURL:        testDomain,
+					CanonicalNameURL: testBackendUpstreamURL,
+				},
+			},
+			CloudflareZone: edge.Zone{
+				CloudflareAccountID: testCloudflareAccountID,
+			},
+			DDoSAttackNotificationsEmail: testEmail,
+		}
+
+		edgeProtection, err := edge.NewEdgeProtection(ctx, "test-ddos-notifications", args)
+		require.NoError(t, err)
+
+		// Verify DDoS attack notification policy is created
+		ddosNotificationPolicy := edgeProtection.GetDDoSAttackNotifications()
+		require.NotNil(t, ddosNotificationPolicy, "DDoS attack notification policy should not be nil")
+
+		// Verify alert type
+		alertTypeCh := make(chan string, 1)
+		defer close(alertTypeCh)
+		ddosNotificationPolicy.AlertType.ApplyT(func(alertType string) error {
+			alertTypeCh <- alertType
+
+			return nil
+		})
+		assert.Equal(t, "dos_attack_l7", <-alertTypeCh, "Alert type should be dos_attack_l7")
+
+		// Verify enabled
+		enabledCh := make(chan bool, 1)
+		defer close(enabledCh)
+		ddosNotificationPolicy.Enabled.ApplyT(func(enabled bool) error {
+			enabledCh <- enabled
+
+			return nil
+		})
+		assert.True(t, <-enabledCh, "Notification policy should be enabled")
+
+		// Verify email mechanism
+		ddosNotificationPolicy.Mechanisms.ApplyT(func(mechanisms cloudflare.NotificationPolicyMechanisms) error {
+			require.NotNil(t, mechanisms, "Mechanisms should not be nil")
+			require.NotNil(t, mechanisms.Emails, "Email mechanisms should not be nil")
+			assert.Len(t, mechanisms.Emails, 1, "Should have 1 email mechanism")
+
+			if len(mechanisms.Emails) > 0 {
+				assert.Equal(t, testEmail, *mechanisms.Emails[0].Id, "Email should match the configured email")
+			}
 
 			return nil
 		})

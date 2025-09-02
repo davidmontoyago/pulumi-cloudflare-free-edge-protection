@@ -74,4 +74,6 @@ type EdgeProtectionArgs struct {
 	BrowserCheckEnabled pulumi.BoolInput
 	// Additional labels to apply to resources
 	Labels map[string]string
+	// Where to send DDoS attack notifications. Disabled if unset.
+	DDoSAttackNotificationsEmail string
 }

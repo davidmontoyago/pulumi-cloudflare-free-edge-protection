@@ -12,21 +12,22 @@ import (
 type EdgeProtection struct {
 	pulumi.ResourceState
 
-	Upstreams                []Upstream
-	CloudflareZone           Zone
-	SecurityLevel            pulumi.StringOutput
-	BrowserCacheTTL          pulumi.IntOutput
-	EdgeCacheTTLSeconds      pulumi.IntOutput
-	RateLimitThreshold       pulumi.IntOutput
-	RateLimitPeriodSeconds   pulumi.IntOutput
-	MitigationTimeoutSeconds pulumi.IntOutput
-	RateLimitMode            pulumi.StringOutput
-	TLSEncryptionMode        pulumi.StringOutput
-	MinTLSVersion            pulumi.StringOutput
-	AlwaysUseHTTPS           pulumi.BoolOutput
-	TLS13Enabled             pulumi.BoolOutput
-	BrowserCheckEnabled      pulumi.BoolOutput
-	Labels                   map[string]string
+	Upstreams                    []Upstream
+	CloudflareZone               Zone
+	SecurityLevel                pulumi.StringOutput
+	BrowserCacheTTL              pulumi.IntOutput
+	EdgeCacheTTLSeconds          pulumi.IntOutput
+	RateLimitThreshold           pulumi.IntOutput
+	RateLimitPeriodSeconds       pulumi.IntOutput
+	MitigationTimeoutSeconds     pulumi.IntOutput
+	RateLimitMode                pulumi.StringOutput
+	TLSEncryptionMode            pulumi.StringOutput
+	MinTLSVersion                pulumi.StringOutput
+	AlwaysUseHTTPS               pulumi.BoolOutput
+	TLS13Enabled                 pulumi.BoolOutput
+	BrowserCheckEnabled          pulumi.BoolOutput
+	DDoSAttackNotificationsEmail string
+	Labels                       map[string]string
 
 	name string
 
@@ -41,6 +42,8 @@ type EdgeProtection struct {
 	redirectRuleset    *cloudflare.Ruleset
 	configRuleset      *cloudflare.Ruleset
 	freeTierRulesCount pulumi.IntOutput
+
+	ddosAttackNotifications *cloudflare.NotificationPolicy
 }
 
 // NewEdgeProtection creates a new EdgeProtection instance with the provided configuration.
@@ -53,21 +56,22 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 	}
 
 	edgeProtection := &EdgeProtection{
-		Upstreams:                args.Upstreams,
-		CloudflareZone:           args.CloudflareZone,
-		SecurityLevel:            setDefaultString(args.SecurityLevel, "medium"),
-		BrowserCacheTTL:          setDefaultInt(args.BrowserCacheTTL, 14400),       // 4 hours
-		EdgeCacheTTLSeconds:      setDefaultInt(args.EdgeCacheTTLSeconds, 2419200), // 28 days
-		RateLimitPeriodSeconds:   setDefaultInt(nil, 10),                           // Free tier requires 10 seconds
-		MitigationTimeoutSeconds: setDefaultInt(nil, 10),                           // Free tier requires 10 seconds
-		RateLimitThreshold:       setDefaultInt(args.RateLimitThreshold, 60),       // 60 requests per 10s period
-		RateLimitMode:            setDefaultString(args.RateLimitMode, "block"),
-		TLSEncryptionMode:        setDefaultString(args.TLSEncryptionMode, "strict"),
-		MinTLSVersion:            setDefaultString(args.MinTLSVersion, "1.2"),
-		AlwaysUseHTTPS:           setDefaultBool(args.AlwaysUseHTTPS, true),
-		TLS13Enabled:             setDefaultBool(args.TLS13Enabled, true),
-		BrowserCheckEnabled:      setDefaultBool(args.BrowserCheckEnabled, true),
-		Labels:                   args.Labels,
+		Upstreams:                    args.Upstreams,
+		CloudflareZone:               args.CloudflareZone,
+		SecurityLevel:                setDefaultString(args.SecurityLevel, "medium"),
+		BrowserCacheTTL:              setDefaultInt(args.BrowserCacheTTL, 14400),       // 4 hours
+		EdgeCacheTTLSeconds:          setDefaultInt(args.EdgeCacheTTLSeconds, 2419200), // 28 days
+		RateLimitPeriodSeconds:       setDefaultInt(nil, 10),                           // Free tier requires 10 seconds
+		MitigationTimeoutSeconds:     setDefaultInt(nil, 10),                           // Free tier requires 10 seconds
+		RateLimitThreshold:           setDefaultInt(args.RateLimitThreshold, 60),       // 60 requests per 10s period
+		RateLimitMode:                setDefaultString(args.RateLimitMode, "block"),
+		TLSEncryptionMode:            setDefaultString(args.TLSEncryptionMode, "strict"),
+		MinTLSVersion:                setDefaultString(args.MinTLSVersion, "1.2"),
+		AlwaysUseHTTPS:               setDefaultBool(args.AlwaysUseHTTPS, true),
+		TLS13Enabled:                 setDefaultBool(args.TLS13Enabled, true),
+		BrowserCheckEnabled:          setDefaultBool(args.BrowserCheckEnabled, true),
+		DDoSAttackNotificationsEmail: args.DDoSAttackNotificationsEmail,
+		Labels:                       args.Labels,
 
 		name: name,
 	}
@@ -174,6 +178,15 @@ func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 		return nil
 	})
 
+	// 8. Create DDoS attack notifications
+	if e.DDoSAttackNotificationsEmail != "" {
+		ddosAttackNotifications, err := e.setupDDoSAttackNotifications(ctx, e.DDoSAttackNotificationsEmail)
+		if err != nil {
+			return fmt.Errorf("failed to create DDoS attack notifications: %w", err)
+		}
+		e.ddosAttackNotifications = ddosAttackNotifications
+	}
+
 	return nil
 }
 
@@ -222,4 +235,9 @@ func (e *EdgeProtection) GetRedirectRuleset() *cloudflare.Ruleset {
 // GetConfigurationRuleset returns the configuration ruleset resource.
 func (e *EdgeProtection) GetConfigurationRuleset() *cloudflare.Ruleset {
 	return e.configRuleset
+}
+
+// GetDDoSAttackNotifications returns the DDoS attack notification policy resource.
+func (e *EdgeProtection) GetDDoSAttackNotifications() *cloudflare.NotificationPolicy {
+	return e.ddosAttackNotifications
 }

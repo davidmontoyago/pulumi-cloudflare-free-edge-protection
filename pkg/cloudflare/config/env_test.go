@@ -113,6 +113,7 @@ func TestLoadConfig_WithDefaults(t *testing.T) {
 	assert.True(t, config.AlwaysUseHTTPS)
 	assert.True(t, config.TLS13Enabled)
 	assert.True(t, config.BrowserCheckEnabled)
+	assert.Empty(t, config.DDoSAttackNotificationsEmail)
 }
 
 //nolint:paralleltest // Uses environment variables
