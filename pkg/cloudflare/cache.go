@@ -13,7 +13,7 @@ import (
 // Uses 3 rules of the 70 under the free tier.
 func (e *EdgeProtection) createCacheRules(ctx *pulumi.Context, zone *cloudflare.Zone) (*cloudflare.Ruleset, error) {
 
-	cacheRuleset, err := cloudflare.NewRuleset(ctx, e.newResourceName("cache-ruleset", "optimization", 64), &cloudflare.RulesetArgs{
+	cacheRuleset, err := cloudflare.NewRuleset(ctx, e.NewResourceName("cache-ruleset", "optimization", 63), &cloudflare.RulesetArgs{
 		ZoneId:      zone.ID(),
 		Name:        pulumi.String("Cache Optimization Rules"),
 		Kind:        pulumi.String("zone"),

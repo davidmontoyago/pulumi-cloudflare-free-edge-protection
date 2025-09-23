@@ -14,7 +14,7 @@ import (
 //
 // Operator "matches" for expressions is reserved for Business plan and WAF Advanced plan.
 func (e *EdgeProtection) createWAFCustomRules(ctx *pulumi.Context, zone *cloudflare.Zone) (*cloudflare.Ruleset, error) {
-	wafCustomRuleset, err := cloudflare.NewRuleset(ctx, e.newResourceName("waf-custom-ruleset", "security", 64), &cloudflare.RulesetArgs{
+	wafCustomRuleset, err := cloudflare.NewRuleset(ctx, e.NewResourceName("waf-custom-ruleset", "security", 63), &cloudflare.RulesetArgs{
 		ZoneId:      zone.ID(),
 		Name:        pulumi.String("WAF Custom Security Rules"),
 		Kind:        pulumi.String("zone"),

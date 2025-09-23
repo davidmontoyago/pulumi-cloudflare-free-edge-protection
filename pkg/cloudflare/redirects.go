@@ -56,7 +56,7 @@ func (e *EdgeProtection) createRedirectRules(ctx *pulumi.Context, zone *cloudfla
 	}
 
 	// See: https://developers.cloudflare.com/rules/url-forwarding/
-	redirectRuleset, err := cloudflare.NewRuleset(ctx, e.newResourceName("redirect-ruleset", "optimization", 64), &cloudflare.RulesetArgs{
+	redirectRuleset, err := cloudflare.NewRuleset(ctx, e.NewResourceName("redirect-ruleset", "optimization", 63), &cloudflare.RulesetArgs{
 		ZoneId:      zone.ID(),
 		Name:        pulumi.String("HTTPS Redirect Rules"),
 		Kind:        pulumi.String("zone"),

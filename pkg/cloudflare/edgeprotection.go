@@ -4,6 +4,7 @@ package cloudflare
 import (
 	"fmt"
 
+	namer "github.com/davidmontoyago/commodity-namer"
 	"github.com/pulumi/pulumi-cloudflare/sdk/v6/go/cloudflare"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -11,6 +12,7 @@ import (
 // EdgeProtection represents a Cloudflare edge protection stack for internet applications.
 type EdgeProtection struct {
 	pulumi.ResourceState
+	namer.Namer
 
 	Upstreams                    []Upstream
 	CloudflareZone               Zone
@@ -56,6 +58,7 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 	}
 
 	edgeProtection := &EdgeProtection{
+		Namer:                        namer.New(name),
 		Upstreams:                    args.Upstreams,
 		CloudflareZone:               args.CloudflareZone,
 		SecurityLevel:                setDefaultString(args.SecurityLevel, "medium"),

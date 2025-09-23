@@ -19,7 +19,7 @@ const (
 func (e *EdgeProtection) createDDoSProtectionRules(ctx *pulumi.Context, zone *cloudflare.Zone) (*cloudflare.Ruleset, error) {
 
 	// DDoS L7 Protection
-	ddosL7Ruleset, err := cloudflare.NewRuleset(ctx, e.newResourceName("l7-ruleset", "ddos-managed", 64), &cloudflare.RulesetArgs{
+	ddosL7Ruleset, err := cloudflare.NewRuleset(ctx, e.NewResourceName("l7-ruleset", "ddos-managed", 63), &cloudflare.RulesetArgs{
 		ZoneId:      zone.ID(),
 		Name:        pulumi.String("DDoS L7 Protection"),
 		Kind:        pulumi.String("zone"),

@@ -3,6 +3,7 @@ module github.com/davidmontoyago/pulumi-cloudflare-free-edge-protection
 go 1.24.5
 
 require (
+	github.com/davidmontoyago/commodity-namer v0.1.1
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/pulumi/pulumi-cloudflare/sdk/v6 v6.5.0
 	github.com/pulumi/pulumi/sdk/v3 v3.192.0

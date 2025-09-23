@@ -16,7 +16,7 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 	// See:
 	// - https://developers.cloudflare.com/ssl/origin-configuration/ssl-modes/
 	// - https://developers.cloudflare.com/ssl/concepts/#ssltls-certificate
-	sslModeSetting, err := cloudflare.NewZoneSetting(ctx, e.newResourceName("ssl-mode", "tls", 64), &cloudflare.ZoneSettingArgs{
+	sslModeSetting, err := cloudflare.NewZoneSetting(ctx, e.NewResourceName("ssl-mode", "tls", 63), &cloudflare.ZoneSettingArgs{
 		ZoneId:    zone.ID(),
 		SettingId: pulumi.String("ssl"), // Setting name for encryption mode
 		Value:     e.TLSEncryptionMode,  // "off", "flexible", "full", "strict"
@@ -26,7 +26,7 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 	}
 
 	// 2. Minimum TLS Version
-	minTLSSetting, err := cloudflare.NewZoneSetting(ctx, e.newResourceName("min-tls", "tls", 64), &cloudflare.ZoneSettingArgs{
+	minTLSSetting, err := cloudflare.NewZoneSetting(ctx, e.NewResourceName("min-tls", "tls", 63), &cloudflare.ZoneSettingArgs{
 		ZoneId:    zone.ID(),
 		SettingId: pulumi.String("min_tls_version"), // Individual setting
 		Value:     e.MinTLSVersion,                  // "1.0", "1.1", "1.2", "1.3"
@@ -36,7 +36,7 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 	}
 
 	// 3. TLS 1.3 Support
-	tls13Setting, err := cloudflare.NewZoneSetting(ctx, e.newResourceName("tls13", "tls", 64), &cloudflare.ZoneSettingArgs{
+	tls13Setting, err := cloudflare.NewZoneSetting(ctx, e.NewResourceName("tls13", "tls", 63), &cloudflare.ZoneSettingArgs{
 		ZoneId:    zone.ID(),
 		SettingId: pulumi.String("tls_1_3"), // Note: tls_1_3, not tls_13
 		Value: e.TLS13Enabled.ApplyT(func(enabled bool) string {
@@ -56,7 +56,7 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 	// to use the Automatic Https Rewrites feature.
 	// See: https://developers.cloudflare.com/ssl/edge-certificates/additional-options/automatic-https-rewrites/
 	// Favoring always_use_https zone setting to handle redirect before rules are evaluated.
-	alwaysHTTPSSetting, err := cloudflare.NewZoneSetting(ctx, e.newResourceName("always-https", "tls", 64), &cloudflare.ZoneSettingArgs{
+	alwaysHTTPSSetting, err := cloudflare.NewZoneSetting(ctx, e.NewResourceName("always-https", "tls", 63), &cloudflare.ZoneSettingArgs{
 		ZoneId:    zone.ID(),
 		SettingId: pulumi.String("always_use_https"),
 		Value: e.AlwaysUseHTTPS.ApplyT(func(enabled bool) string {

@@ -13,7 +13,7 @@ import (
 //
 // See: https://developers.cloudflare.com/notifications/
 func (e *EdgeProtection) setupDDoSAttackNotifications(ctx *pulumi.Context, email string) (*cloudflare.NotificationPolicy, error) {
-	policyName := e.newResourceName("ddos-attack", "notification-policy", 64)
+	policyName := e.NewResourceName("ddos-attack", "notification-policy", 63)
 	ddosNotificationPolicy, err := cloudflare.NewNotificationPolicy(ctx, policyName, &cloudflare.NotificationPolicyArgs{
 		AccountId: pulumi.String(e.CloudflareZone.CloudflareAccountID),
 		AlertType: pulumi.String("dos_attack_l7"), // dos*attack*l7 ???

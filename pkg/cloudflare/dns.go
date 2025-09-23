@@ -14,7 +14,7 @@ func (e *EdgeProtection) createZone(ctx *pulumi.Context) (*cloudflare.Zone, erro
 	firstUpstream := e.Upstreams[0]
 	zoneDomainURL := firstUpstream.DomainURL[strings.Index(firstUpstream.DomainURL, ".")+1:]
 
-	zone, err := cloudflare.NewZone(ctx, e.newResourceName("zone", "dns", 64), &cloudflare.ZoneArgs{
+	zone, err := cloudflare.NewZone(ctx, e.NewResourceName("zone", "dns", 63), &cloudflare.ZoneArgs{
 		Account: cloudflare.ZoneAccountArgs{
 			Id: pulumi.String(e.CloudflareZone.CloudflareAccountID),
 		},
@@ -34,7 +34,7 @@ func (e *EdgeProtection) createDNSRecords(ctx *pulumi.Context, zone *cloudflare.
 	upstreamRecords := make([]*cloudflare.DnsRecord, 0, len(e.Upstreams))
 	for _, upstream := range e.Upstreams {
 		recordName := strings.Split(upstream.DomainURL, ".")[0]
-		recordResourceName := e.newResourceName(fmt.Sprintf("upstream-%s", recordName), "dns", 64)
+		recordResourceName := e.NewResourceName(fmt.Sprintf("upstream-%s", recordName), "dns", 63)
 		record, err := cloudflare.NewDnsRecord(ctx, recordResourceName, &cloudflare.DnsRecordArgs{
 			ZoneId:  zone.ID(),
 			Name:    pulumi.String(upstream.DomainURL),

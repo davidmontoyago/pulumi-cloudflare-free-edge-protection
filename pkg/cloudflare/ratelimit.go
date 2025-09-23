@@ -12,7 +12,7 @@ import (
 // See:
 // https://developers.cloudflare.com/waf/rate-limiting-rules/#availability
 func (e *EdgeProtection) createRateLimitRuleset(ctx *pulumi.Context, zone *cloudflare.Zone) (*cloudflare.Ruleset, error) {
-	rateLimitRuleset, err := cloudflare.NewRuleset(ctx, e.newResourceName("rate-limit-ruleset", "ddos-custom", 64), &cloudflare.RulesetArgs{
+	rateLimitRuleset, err := cloudflare.NewRuleset(ctx, e.NewResourceName("rate-limit-ruleset", "ddos-custom", 63), &cloudflare.RulesetArgs{
 		ZoneId:      zone.ID(),
 		Name:        pulumi.String("Rate Limiting Rules"),
 		Kind:        pulumi.String("zone"),

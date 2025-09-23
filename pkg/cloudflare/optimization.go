@@ -39,7 +39,7 @@ func (e *EdgeProtection) createOptimizationRules(ctx *pulumi.Context, zone *clou
 func (e *EdgeProtection) createConfigurationRules(ctx *pulumi.Context, zone *cloudflare.Zone) (*cloudflare.Ruleset, error) {
 
 	// See: https://developers.cloudflare.com/rules/configuration-rules/create-api/#basic-rule-settings
-	configRuleset, err := cloudflare.NewRuleset(ctx, e.newResourceName("config-ruleset", "optimization", 64), &cloudflare.RulesetArgs{
+	configRuleset, err := cloudflare.NewRuleset(ctx, e.NewResourceName("config-ruleset", "optimization", 63), &cloudflare.RulesetArgs{
 		ZoneId:      zone.ID(),
 		Name:        pulumi.String("Configuration Rules"),
 		Kind:        pulumi.String("zone"),
