@@ -5,7 +5,7 @@ go 1.24.5
 require (
 	github.com/davidmontoyago/commodity-namer v0.1.1
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/pulumi/pulumi-cloudflare/sdk/v6 v6.10.0
+	github.com/pulumi/pulumi-cloudflare/sdk/v6 v6.10.1
 	github.com/pulumi/pulumi/sdk/v3 v3.204.0
 	github.com/stretchr/testify v1.11.1
 )
