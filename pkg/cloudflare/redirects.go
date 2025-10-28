@@ -22,7 +22,7 @@ func (e *EdgeProtection) createRedirectRules(ctx *pulumi.Context, zone *cloudfla
 				ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
 					FromValue: &cloudflare.RulesetRuleActionParametersFromValueArgs{
 						PreserveQueryString: pulumi.Bool(true),
-						StatusCode:          pulumi.Float64(301),
+						StatusCode:          pulumi.Int(301),
 						TargetUrl: &cloudflare.RulesetRuleActionParametersFromValueTargetUrlArgs{
 							Value: pulumi.Sprintf(`https://%s${request.uri}`, upstream.DomainURL),
 						},
@@ -42,7 +42,7 @@ func (e *EdgeProtection) createRedirectRules(ctx *pulumi.Context, zone *cloudfla
 				ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
 					FromValue: &cloudflare.RulesetRuleActionParametersFromValueArgs{
 						PreserveQueryString: pulumi.Bool(true),
-						StatusCode:          pulumi.Float64(301),
+						StatusCode:          pulumi.Int(301),
 						TargetUrl: &cloudflare.RulesetRuleActionParametersFromValueTargetUrlArgs{
 							Expression: pulumi.String(`substring(http.request.uri.path,0,-1)`),
 						},
