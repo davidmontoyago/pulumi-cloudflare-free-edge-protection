@@ -594,18 +594,18 @@ func TestNewEdgeProtection_WAFCustomRuleset(t *testing.T) {
 
 			// Verify Rule 1: CMS and WordPress specific paths
 			rule1 := rules[0]
-			assert.Equal(t, "block", *rule1.Action, "Rule 1 should be a block action")
+			assert.Equal(t, "block", rule1.Action, "Rule 1 should be a block action")
 
-			rule1Expression := *rule1.Expression
+			rule1Expression := rule1.Expression
 			assert.Contains(t, rule1Expression, `(http.request.uri.path contains "/wp-admin/")`, "Rule 1 should contain WordPress paths")
 			assert.Contains(t, rule1Expression, `(http.request.uri.path contains "/administrator/")`, "Rule 1 should contain CMS specific paths")
 			assert.Contains(t, rule1Expression, `(http.request.uri.path contains "/app/")`, "Rule 1 should contain application specific paths")
 
 			// Verify Rule 2: System, configuration, version control paths AND malicious user agents
 			rule2 := rules[1]
-			assert.Equal(t, "block", *rule2.Action, "Rule 2 should be a block action")
+			assert.Equal(t, "block", rule2.Action, "Rule 2 should be a block action")
 
-			rule2Expression := *rule2.Expression
+			rule2Expression := rule2.Expression
 			// Test path blocking expressions
 			assert.Contains(t, rule2Expression, `(http.request.uri.path contains "/.env")`, "Rule 2 should contain configuration file paths")
 			assert.Contains(t, rule2Expression, `(http.request.uri.path contains "/.git/")`, "Rule 2 should contain version control paths")
@@ -619,29 +619,29 @@ func TestNewEdgeProtection_WAFCustomRuleset(t *testing.T) {
 
 			// Verify Rule 3: Admin panels, backup files, and sensitive areas
 			rule3 := rules[2]
-			assert.Equal(t, "block", *rule3.Action, "Rule 3 should be a block action")
+			assert.Equal(t, "block", rule3.Action, "Rule 3 should be a block action")
 			assert.Contains(t, *rule3.Description, "admin panels, backup files, and sensitive", "Rule 3 should be for admin/backup paths")
 
-			rule3Expression := *rule3.Expression
+			rule3Expression := rule3.Expression
 			assert.Contains(t, rule3Expression, `(http.request.uri.path contains "/admin/")`, "Rule 3 should contain admin panel paths")
 			assert.Contains(t, rule3Expression, `(http.request.uri.path contains "/backup/")`, "Rule 3 should contain backup file paths")
 			assert.Contains(t, rule3Expression, `(http.request.uri.path contains "/phpmyadmin/")`, "Rule 3 should contain database management paths")
 
 			// Verify Rule 4: Development, API, and server information paths
 			rule4 := rules[3]
-			assert.Equal(t, "block", *rule4.Action, "Rule 4 should be a block action")
+			assert.Equal(t, "block", rule4.Action, "Rule 4 should be a block action")
 			assert.Contains(t, *rule4.Description, "development tools, API endpoints, and server", "Rule 4 should be for dev/API paths")
 
-			rule4Expression := *rule4.Expression
+			rule4Expression := rule4.Expression
 			assert.Contains(t, rule4Expression, `(http.request.uri.path contains "/test/")`, "Rule 4 should contain development testing paths")
 			assert.Contains(t, rule4Expression, `(http.request.uri.path contains "/api/v1/admin")`, "Rule 4 should contain API endpoint paths")
 			assert.Contains(t, rule4Expression, `(http.request.uri.path contains "/server-status")`, "Rule 4 should contain server file paths")
 
 			// Verify Rule 5: Challenge dangerous HTTP methods and suspicious behavior
 			rule5 := rules[4]
-			assert.Equal(t, "managed_challenge", *rule5.Action, "Rule 5 should be a managed_challenge action")
+			assert.Equal(t, "managed_challenge", rule5.Action, "Rule 5 should be a managed_challenge action")
 
-			rule5Expression := *rule5.Expression
+			rule5Expression := rule5.Expression
 			assert.Contains(t, rule5Expression, `(http.request.method eq "TRACE")`, "Rule 5 should contain dangerous TRACE method")
 			assert.Contains(t, rule5Expression, `(http.request.method eq "DEBUG")`, "Rule 5 should contain dangerous DEBUG method")
 			assert.Contains(t, rule5Expression, `(http.request.uri.query contains "union select")`, "Rule 5 should contain SQL injection patterns")
@@ -707,9 +707,9 @@ func TestNewEdgeProtection_CacheRuleset(t *testing.T) {
 
 			// Verify Rule 1: Static assets cache rule with Content-Type headers
 			rule1 := rules[0]
-			assert.Equal(t, "set_cache_settings", *rule1.Action, "Rule 1 should be a set_cache_settings action")
+			assert.Equal(t, "set_cache_settings", rule1.Action, "Rule 1 should be a set_cache_settings action")
 
-			rule1Expression := *rule1.Expression
+			rule1Expression := rule1.Expression
 			// Verify file extension checks
 			assert.Contains(t, rule1Expression, `(http.request.uri.path contains ".css")`, "Rule 1 should contain CSS file extension")
 			assert.Contains(t, rule1Expression, `(http.request.uri.path contains ".js")`, "Rule 1 should contain JS file extension")
@@ -725,11 +725,11 @@ func TestNewEdgeProtection_CacheRuleset(t *testing.T) {
 
 			// Verify Rule 2: HTML pages cache rule
 			rule2 := rules[1]
-			assert.Equal(t, "set_cache_settings", *rule2.Action, "Rule 2 should be a set_cache_settings action")
+			assert.Equal(t, "set_cache_settings", rule2.Action, "Rule 2 should be a set_cache_settings action")
 
 			// Verify Rule 3: Dynamic content bypass rule
 			rule3 := rules[2]
-			assert.Equal(t, "set_cache_settings", *rule3.Action, "Rule 3 should be a set_cache_settings action")
+			assert.Equal(t, "set_cache_settings", rule3.Action, "Rule 3 should be a set_cache_settings action")
 
 			return nil
 		})
@@ -789,13 +789,13 @@ func TestNewEdgeProtection_RedirectRuleset(t *testing.T) {
 
 			// Verify Rule 1: www to root redirect
 			rule1 := rules[0]
-			assert.Equal(t, "redirect", *rule1.Action, "Rule 1 should be a redirect action")
-			assert.Contains(t, *rule1.Expression, "http.host eq", "Rule 1 should check host")
+			assert.Equal(t, "redirect", rule1.Action, "Rule 1 should be a redirect action")
+			assert.Contains(t, rule1.Expression, "http.host eq", "Rule 1 should check host")
 
 			// Verify Rule 2: Trailing slash redirect
 			rule2 := rules[1]
-			assert.Equal(t, "redirect", *rule2.Action, "Rule 2 should be a redirect action")
-			assert.Contains(t, *rule2.Expression, `ends_with(http.request.uri.path, "/")`, "Rule 2 should check for trailing slash")
+			assert.Equal(t, "redirect", rule2.Action, "Rule 2 should be a redirect action")
+			assert.Contains(t, rule2.Expression, `ends_with(http.request.uri.path, "/")`, "Rule 2 should check for trailing slash")
 
 			// Verify that the trailing slash redirect has the correct Expression field in target URL
 			assert.NotNil(t, rule2.ActionParameters, "Rule 2 should have action parameters")
