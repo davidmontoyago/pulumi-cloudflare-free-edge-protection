@@ -873,6 +873,62 @@ func TestNewEdgeProtection_ConfigurationRuleset(t *testing.T) {
 	}
 }
 
+func TestNewEdgeProtection_XRealClientIPHeaderTransformRuleset(t *testing.T) {
+	t.Parallel()
+
+	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		args := &edge.EdgeProtectionArgs{
+			Upstreams: []edge.Upstream{
+				{
+					DomainURL:        testDomain,
+					CanonicalNameURL: testBackendUpstreamURL,
+				},
+			},
+			CloudflareZone: edge.Zone{
+				CloudflareAccountID: testCloudflareAccountID,
+			},
+		}
+
+		edgeProtection, err := edge.NewEdgeProtection(ctx, "test-transform", args)
+		require.NoError(t, err)
+
+		transformRuleset := edgeProtection.GetRequestHeaderTransformRuleset()
+		require.NotNil(t, transformRuleset, "Request header transform ruleset should not be nil")
+
+		phaseCh := make(chan string, 1)
+		defer close(phaseCh)
+		transformRuleset.Phase.ApplyT(func(phase string) error {
+			phaseCh <- phase
+
+			return nil
+		})
+		assert.Equal(t, "http_request_late_transform", <-phaseCh)
+
+		transformRuleset.Rules.ApplyT(func(rules []cloudflare.RulesetRule) error {
+			require.Len(t, rules, 1, "Request header transform ruleset should have 1 rule")
+			rule := rules[0]
+			assert.Equal(t, "rewrite", rule.Action, "Transform rule should use rewrite action")
+			assert.Equal(t, "true", rule.Expression, "Transform rule should apply to all requests")
+			require.NotNil(t, rule.ActionParameters, "Transform rule should have action parameters")
+			require.NotNil(t, rule.ActionParameters.Headers, "Transform rule should define headers")
+
+			headerConfig, exists := rule.ActionParameters.Headers["x-real-client-ip"]
+			require.True(t, exists, "Transform rule should configure x-real-client-ip header")
+			assert.Equal(t, "set", headerConfig.Operation, "Header operation should be set")
+			require.NotNil(t, headerConfig.Expression, "Header expression should be set")
+			assert.Equal(t, "to_string(ip.src)", *headerConfig.Expression, "Header expression should use trusted Cloudflare client IP")
+
+			return nil
+		})
+
+		return nil
+	}, pulumi.WithMocks("project", "stack", &edgeProtectionMocks{}))
+
+	if err != nil {
+		t.Fatalf("Pulumi WithMocks failed: %v", err)
+	}
+}
+
 func TestNewEdgeProtection_DDoSAttackNotifications(t *testing.T) {
 	t.Parallel()
 

@@ -44,6 +44,7 @@ func main() {
 		ctx.Export("cloudflare_cache_ruleset_id", edgeProtection.GetCacheRuleset().ID())
 		ctx.Export("cloudflare_redirect_ruleset_id", edgeProtection.GetRedirectRuleset().ID())
 		ctx.Export("cloudflare_config_ruleset_id", edgeProtection.GetConfigurationRuleset().ID())
+		ctx.Export("cloudflare_transform_ruleset_id", edgeProtection.GetRequestHeaderTransformRuleset().ID())
 
 		return nil
 	})
