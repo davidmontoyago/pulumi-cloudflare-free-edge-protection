@@ -43,6 +43,7 @@ type EdgeProtection struct {
 	cacheRuleset       *cloudflare.Ruleset
 	redirectRuleset    *cloudflare.Ruleset
 	configRuleset      *cloudflare.Ruleset
+	transformRuleset   *cloudflare.Ruleset
 	freeTierRulesCount pulumi.IntOutput
 
 	ddosAttackNotifications *cloudflare.NotificationPolicy
@@ -102,6 +103,7 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		"cloudflare_cache_ruleset_id":          edgeProtection.cacheRuleset.ID(),
 		"cloudflare_redirect_ruleset_id":       edgeProtection.redirectRuleset.ID(),
 		"cloudflare_config_ruleset_id":         edgeProtection.configRuleset.ID(),
+		"cloudflare_transform_ruleset_id":      edgeProtection.transformRuleset.ID(),
 		"cloudflare_ruleset_rules_count":       edgeProtection.freeTierRulesCount,
 	})
 	if err != nil {
@@ -166,11 +168,19 @@ func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 	e.redirectRuleset = redirectRuleset
 	e.configRuleset = configRuleset
 
+	// 8. Create X-Real-Client-IP request header transformation rules.
+	transformRuleset, err := e.createXRealClientIPHeaderTransformRules(ctx, zone)
+	if err != nil {
+		return fmt.Errorf("failed to create request header transformation rules: %w", err)
+	}
+	e.transformRuleset = transformRuleset
+
 	// Count total number of free-tier rules
 	pulumi.All(
 		cacheRuleset.Rules,
 		redirectRuleset.Rules,
 		configRuleset.Rules,
+		transformRuleset.Rules,
 		wafCustomRuleset.Rules,
 		ddosL7Ruleset.Rules,
 		rateLimitRuleset.Rules,
@@ -181,7 +191,7 @@ func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 		return nil
 	})
 
-	// 8. Create DDoS attack notifications
+	// 9. Create DDoS attack notifications
 	if e.DDoSAttackNotificationsEmail != "" {
 		ddosAttackNotifications, err := e.setupDDoSAttackNotifications(ctx, e.DDoSAttackNotificationsEmail)
 		if err != nil {
@@ -238,6 +248,11 @@ func (e *EdgeProtection) GetRedirectRuleset() *cloudflare.Ruleset {
 // GetConfigurationRuleset returns the configuration ruleset resource.
 func (e *EdgeProtection) GetConfigurationRuleset() *cloudflare.Ruleset {
 	return e.configRuleset
+}
+
+// GetRequestHeaderTransformRuleset returns the request header transform ruleset resource.
+func (e *EdgeProtection) GetRequestHeaderTransformRuleset() *cloudflare.Ruleset {
+	return e.transformRuleset
 }
 
 // GetDDoSAttackNotifications returns the DDoS attack notification policy resource.
