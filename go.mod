@@ -6,7 +6,7 @@ require (
 	github.com/davidmontoyago/commodity-namer v0.2.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/pulumi/pulumi-cloudflare/sdk/v6 v6.14.0
-	github.com/pulumi/pulumi/sdk/v3 v3.231.0
+	github.com/pulumi/pulumi/sdk/v3 v3.232.0
 	github.com/stretchr/testify v1.11.1
 )
 
@@ -43,7 +43,6 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang/glog v1.2.5 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.28.0 // indirect
