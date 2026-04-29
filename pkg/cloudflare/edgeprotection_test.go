@@ -912,11 +912,27 @@ func TestNewEdgeProtection_XRealClientIPHeaderTransformRuleset(t *testing.T) {
 			require.NotNil(t, rule.ActionParameters, "Transform rule should have action parameters")
 			require.NotNil(t, rule.ActionParameters.Headers, "Transform rule should define headers")
 
-			headerConfig, exists := rule.ActionParameters.Headers["x-real-client-ip"]
-			require.True(t, exists, "Transform rule should configure x-real-client-ip header")
-			assert.Equal(t, "set", headerConfig.Operation, "Header operation should be set")
-			require.NotNil(t, headerConfig.Expression, "Header expression should be set")
-			assert.Equal(t, "to_string(ip.src)", *headerConfig.Expression, "Header expression should use trusted Cloudflare client IP")
+			expectedHeaders := map[string]string{
+				"x-real-client-ip":          "to_string(ip.src)",
+				"x-real-client-country":     "ip.src.country",
+				"x-real-client-continent":   "ip.src.continent",
+				"x-real-client-city":        "ip.src.city",
+				"x-real-client-region":      "ip.src.region",
+				"x-real-client-region-code": "ip.src.region_code",
+				"x-real-client-postal-code": "ip.src.postal_code",
+				"x-real-client-metro-code":  "ip.src.metro_code",
+				"x-real-client-lat":         "ip.src.lat",
+				"x-real-client-lon":         "ip.src.lon",
+				"x-real-client-timezone":    "ip.src.timezone.name",
+			}
+
+			for headerName, expectedExpression := range expectedHeaders {
+				headerConfig, exists := rule.ActionParameters.Headers[headerName]
+				require.True(t, exists, "Transform rule should configure %s header", headerName)
+				assert.Equal(t, "set", headerConfig.Operation, "Header operation should be set for %s", headerName)
+				require.NotNil(t, headerConfig.Expression, "Header expression should be set for %s", headerName)
+				assert.Equal(t, expectedExpression, *headerConfig.Expression, "Header expression should match for %s", headerName)
+			}
 
 			return nil
 		})

@@ -13,7 +13,7 @@ Pulumi component to setup internet-grade protection under the Cloudlflare free t
 - Browser integrity checks
 - Cache web assets
 - [Challenge requests](https://developers.cloudflare.com/cloudflare-challenges/) based on threat score
-- Request header transform to pass real client IP as `X-Real-Client-IP`
+- Request header transform to pass real client IP and geolocation headers to upstream
 
 ### Pre-requisites
 - A cloudflare free tier account
@@ -95,13 +95,23 @@ Rules
 
 Make sure the upstream services allow-list Cloudflare IPs to only allow traffic from the edge proxies.
 
-### Client IP forwarding
+### Client IP and geolocation forwarding
 
-To make origin-side client IP handling explicit, this component creates a request header transform rule that sets:
+To make origin-side client context handling explicit, this component creates a request header transform rule that sets:
 
 - `X-Real-Client-IP: <client-ip>`
+- `X-Real-Client-Country: <ISO 3166-1 Alpha-2 country code>`
+- `X-Real-Client-Continent: <continent code>`
+- `X-Real-Client-City: <city>`
+- `X-Real-Client-Region: <region/state>`
+- `X-Real-Client-Region-Code: <region code>`
+- `X-Real-Client-Postal-Code: <postal code>`
+- `X-Real-Client-Metro-Code: <metro code>`
+- `X-Real-Client-Lat: <latitude>`
+- `X-Real-Client-Lon: <longitude>`
+- `X-Real-Client-Timezone: <IANA timezone>`
 
-The value is derived from Cloudflare's trusted `ip.src` request field (equivalent to `CF-Connecting-IP` for proxied traffic), instead of parsing `X-Forwarded-For`.
+Values are derived from Cloudflare trusted `ip.src.*` request fields (with `ip.src` equivalent to `CF-Connecting-IP` for proxied traffic), instead of parsing `X-Forwarded-For`.
 
 This approach avoids trusting intermediary-provided `X-Forwarded-For` chains while keeping the configuration compatible with the Cloudflare free tier.
 
