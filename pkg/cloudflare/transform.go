@@ -26,6 +26,8 @@ func (e *EdgeProtection) createXRealClientIPHeaderTransformRules(ctx *pulumi.Con
 				Description: pulumi.String("Set trusted client IP and geolocation headers for origin services"),
 				ActionParameters: &cloudflare.RulesetRuleActionParametersArgs{
 					Headers: cloudflare.RulesetRuleActionParametersHeadersMap{
+						// ===== Client IP and geolocation headers =====
+
 						// Single client IP address (IPv4 or IPv6), sourced from Cloudflare trusted ip.src.
 						"x-real-client-ip": &cloudflare.RulesetRuleActionParametersHeadersArgs{
 							Operation: pulumi.String("set"),
@@ -82,6 +84,44 @@ func (e *EdgeProtection) createXRealClientIPHeaderTransformRules(ctx *pulumi.Con
 						"x-real-client-timezone": &cloudflare.RulesetRuleActionParametersHeadersArgs{
 							Operation:  pulumi.String("set"),
 							Expression: pulumi.String("ip.src.timezone.name"),
+						},
+
+						// ===== TLS and connection headers =====
+
+						// TLS protocol version used by the client (for example, "TLSv1.3").
+						"x-real-client-tls-version": &cloudflare.RulesetRuleActionParametersHeadersArgs{
+							Operation:  pulumi.String("set"),
+							Expression: pulumi.String("cf.tls_version"),
+						},
+						// TLS cipher suite selected for the client connection.
+						"x-real-client-tls-cipher": &cloudflare.RulesetRuleActionParametersHeadersArgs{
+							Operation:  pulumi.String("set"),
+							Expression: pulumi.String("cf.tls_cipher"),
+						},
+						// TLS ClientHello message length as a decimal string.
+						"x-real-client-tls-client-hello-length": &cloudflare.RulesetRuleActionParametersHeadersArgs{
+							Operation:  pulumi.String("set"),
+							Expression: pulumi.String("to_string(cf.tls_client_hello_length)"),
+						},
+						// Base64-encoded 32-byte random value from the TLS handshake.
+						"x-real-client-tls-client-random": &cloudflare.RulesetRuleActionParametersHeadersArgs{
+							Operation:  pulumi.String("set"),
+							Expression: pulumi.String("cf.tls_client_random"),
+						},
+						// SHA-1 fingerprint of TLS client extensions (big-endian).
+						"x-real-client-tls-client-extensions-sha1": &cloudflare.RulesetRuleActionParametersHeadersArgs{
+							Operation:  pulumi.String("set"),
+							Expression: pulumi.String("cf.tls_client_extensions_sha1"),
+						},
+						// SHA-1 fingerprint of TLS client extensions (little-endian).
+						"x-real-client-tls-client-extensions-sha1-le": &cloudflare.RulesetRuleActionParametersHeadersArgs{
+							Operation:  pulumi.String("set"),
+							Expression: pulumi.String("cf.tls_client_extensions_sha1_le"),
+						},
+						// SHA-1 fingerprint of client cipher list in received order.
+						"x-real-client-tls-client-ciphers-sha1": &cloudflare.RulesetRuleActionParametersHeadersArgs{
+							Operation:  pulumi.String("set"),
+							Expression: pulumi.String("cf.tls_client_ciphers_sha1"),
 						},
 					},
 				},

@@ -95,7 +95,7 @@ Rules
 
 Make sure the upstream services allow-list Cloudflare IPs to only allow traffic from the edge proxies.
 
-### Client IP and geolocation forwarding
+### Client IP, geolocation, and TLS forwarding
 
 To make origin-side client context handling explicit, this component creates a request header transform rule that sets:
 
@@ -110,8 +110,17 @@ To make origin-side client context handling explicit, this component creates a r
 - `X-Real-Client-Lat: <latitude>`
 - `X-Real-Client-Lon: <longitude>`
 - `X-Real-Client-Timezone: <IANA timezone>`
+- `X-Real-Client-TLS-Version: <TLS version>`
+- `X-Real-Client-TLS-Cipher: <TLS cipher suite>`
+- `X-Real-Client-TLS-Client-Hello-Length: <client hello length>`
+- `X-Real-Client-TLS-Client-Random: <base64 client random>`
+- `X-Real-Client-TLS-Client-Extensions-SHA1: <sha1 fingerprint>`
+- `X-Real-Client-TLS-Client-Extensions-SHA1-LE: <sha1 fingerprint little-endian>`
+- `X-Real-Client-TLS-Client-Ciphers-SHA1: <sha1 fingerprint>`
 
 Values are derived from Cloudflare trusted `ip.src.*` request fields (with `ip.src` equivalent to `CF-Connecting-IP` for proxied traffic), instead of parsing `X-Forwarded-For`.
+
+TLS header values are derived from Cloudflare `cf.tls_*` request fields available for request header transform expressions.
 
 This approach avoids trusting intermediary-provided `X-Forwarded-For` chains while keeping the configuration compatible with the Cloudflare free tier.
 
