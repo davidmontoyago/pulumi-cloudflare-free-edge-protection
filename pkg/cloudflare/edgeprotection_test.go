@@ -913,17 +913,24 @@ func TestNewEdgeProtection_XRealClientIPHeaderTransformRuleset(t *testing.T) {
 			require.NotNil(t, rule.ActionParameters.Headers, "Transform rule should define headers")
 
 			expectedHeaders := map[string]string{
-				"x-real-client-ip":          "to_string(ip.src)",
-				"x-real-client-country":     "ip.src.country",
-				"x-real-client-continent":   "ip.src.continent",
-				"x-real-client-city":        "ip.src.city",
-				"x-real-client-region":      "ip.src.region",
-				"x-real-client-region-code": "ip.src.region_code",
-				"x-real-client-postal-code": "ip.src.postal_code",
-				"x-real-client-metro-code":  "ip.src.metro_code",
-				"x-real-client-lat":         "ip.src.lat",
-				"x-real-client-lon":         "ip.src.lon",
-				"x-real-client-timezone":    "ip.src.timezone.name",
+				"x-real-client-ip":                            "to_string(ip.src)",
+				"x-real-client-country":                       "ip.src.country",
+				"x-real-client-continent":                     "ip.src.continent",
+				"x-real-client-city":                          "ip.src.city",
+				"x-real-client-region":                        "ip.src.region",
+				"x-real-client-region-code":                   "ip.src.region_code",
+				"x-real-client-postal-code":                   "ip.src.postal_code",
+				"x-real-client-metro-code":                    "ip.src.metro_code",
+				"x-real-client-lat":                           "ip.src.lat",
+				"x-real-client-lon":                           "ip.src.lon",
+				"x-real-client-timezone":                      "ip.src.timezone.name",
+				"x-real-client-tls-version":                   "cf.tls_version",
+				"x-real-client-tls-cipher":                    "cf.tls_cipher",
+				"x-real-client-tls-client-hello-length":       "to_string(cf.tls_client_hello_length)",
+				"x-real-client-tls-client-random":             "cf.tls_client_random",
+				"x-real-client-tls-client-extensions-sha1":    "cf.tls_client_extensions_sha1",
+				"x-real-client-tls-client-extensions-sha1-le": "cf.tls_client_extensions_sha1_le",
+				"x-real-client-tls-client-ciphers-sha1":       "cf.tls_client_ciphers_sha1",
 			}
 
 			for headerName, expectedExpression := range expectedHeaders {
