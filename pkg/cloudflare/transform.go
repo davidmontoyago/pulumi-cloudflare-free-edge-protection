@@ -123,6 +123,29 @@ func (e *EdgeProtection) createXRealClientIPHeaderTransformRules(ctx *pulumi.Con
 							Operation:  pulumi.String("set"),
 							Expression: pulumi.String("cf.tls_client_ciphers_sha1"),
 						},
+
+						// ===== QUIC/TCP protocol and RTT headers =====
+
+						// TCP round-trip time in milliseconds as a decimal string.
+						"x-cf-rtt": &cloudflare.RulesetRuleActionParametersHeadersArgs{
+							Operation:  pulumi.String("set"),
+							Expression: pulumi.String("to_string(cf.timings.client_tcp_rtt_msec)"),
+						},
+						// QUIC round-trip time in milliseconds as a decimal string (HTTP/3 only).
+						"x-cf-quic-rtt": &cloudflare.RulesetRuleActionParametersHeadersArgs{
+							Operation:  pulumi.String("set"),
+							Expression: pulumi.String("to_string(cf.timings.client_quic_rtt_msec)"),
+						},
+						// Client transport protocol where true indicates TCP and false indicates QUIC.
+						"x-cf-tcp": &cloudflare.RulesetRuleActionParametersHeadersArgs{
+							Operation:  pulumi.String("set"),
+							Expression: pulumi.String("to_string(cf.edge.client_tcp)"),
+						},
+						// Estimated layer-4 delivery rate in bytes per second as a decimal string.
+						"x-cf-delivery-rate": &cloudflare.RulesetRuleActionParametersHeadersArgs{
+							Operation:  pulumi.String("set"),
+							Expression: pulumi.String("to_string(cf.edge.l4.delivery_rate)"),
+						},
 					},
 				},
 				Enabled: pulumi.Bool(true),
