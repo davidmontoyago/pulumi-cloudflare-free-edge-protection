@@ -13,7 +13,7 @@ Pulumi component to setup internet-grade protection under the Cloudlflare free t
 - Browser integrity checks
 - Cache web assets
 - [Challenge requests](https://developers.cloudflare.com/cloudflare-challenges/) based on threat score
-- Request header transform to pass real client IP and geolocation headers to upstream
+- Request header transforms to pass real client IP, geolocation, TLS, and transport headers to upstream
 
 ### Pre-requisites
 - A cloudflare free tier account
@@ -95,7 +95,7 @@ Rules
 
 Make sure the upstream services allow-list Cloudflare IPs to only allow traffic from the edge proxies.
 
-### Client IP, geolocation, and TLS forwarding
+### Client IP, geolocation, TLS, and transport forwarding
 
 To make origin-side client context handling explicit, this component creates a request header transform rule that sets:
 
@@ -117,10 +117,15 @@ To make origin-side client context handling explicit, this component creates a r
 - `X-Real-Client-TLS-Client-Extensions-SHA1: <sha1 fingerprint>`
 - `X-Real-Client-TLS-Client-Extensions-SHA1-LE: <sha1 fingerprint little-endian>`
 - `X-Real-Client-TLS-Client-Ciphers-SHA1: <sha1 fingerprint>`
+- `X-CF-RTT: <tcp rtt in ms>`
+- `X-CF-QUIC-RTT: <quic rtt in ms for HTTP/3>`
+- `X-CF-TCP: <true if TCP, false if QUIC>`
+- `X-CF-Delivery-Rate: <estimated bytes/sec>`
 
 Values are derived from Cloudflare trusted `ip.src.*` request fields (with `ip.src` equivalent to `CF-Connecting-IP` for proxied traffic), instead of parsing `X-Forwarded-For`.
 
 TLS header values are derived from Cloudflare `cf.tls_*` request fields available for request header transform expressions.
+Transport and RTT headers are derived from Cloudflare `cf.timings.*` and `cf.edge.*` request fields available for request header transform expressions.
 
 This approach avoids trusting intermediary-provided `X-Forwarded-For` chains while keeping the configuration compatible with the Cloudflare free tier.
 
