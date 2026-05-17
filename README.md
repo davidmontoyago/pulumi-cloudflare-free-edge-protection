@@ -117,10 +117,10 @@ To make origin-side client context handling explicit, this component creates a r
 - `X-Real-Client-TLS-Client-Extensions-SHA1: <sha1 fingerprint>`
 - `X-Real-Client-TLS-Client-Extensions-SHA1-LE: <sha1 fingerprint little-endian>`
 - `X-Real-Client-TLS-Client-Ciphers-SHA1: <sha1 fingerprint>`
-- `X-CF-RTT: <tcp rtt in ms>`
-- `X-CF-QUIC-RTT: <quic rtt in ms for HTTP/3>`
-- `X-CF-TCP: <true if TCP, false if QUIC>`
-- `X-CF-Delivery-Rate: <estimated bytes/sec>`
+- `X-Real-Client-RTT: <tcp rtt in ms>`
+- `X-Real-Client-QUIC-RTT: <quic rtt in ms for HTTP/3>`
+- `X-Real-Client-TCP: <true if TCP, false if QUIC>`
+- `X-Real-Client-Delivery-Rate: <estimated bytes/sec>`
 
 Values are derived from Cloudflare trusted `ip.src.*` request fields (with `ip.src` equivalent to `CF-Connecting-IP` for proxied traffic), instead of parsing `X-Forwarded-For`.
 

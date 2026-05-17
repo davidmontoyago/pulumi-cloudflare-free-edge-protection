@@ -931,10 +931,10 @@ func TestNewEdgeProtection_XRealClientIPHeaderTransformRuleset(t *testing.T) {
 				"x-real-client-tls-client-extensions-sha1":    "cf.tls_client_extensions_sha1",
 				"x-real-client-tls-client-extensions-sha1-le": "cf.tls_client_extensions_sha1_le",
 				"x-real-client-tls-client-ciphers-sha1":       "cf.tls_client_ciphers_sha1",
-				"x-cf-rtt":                                    "to_string(cf.timings.client_tcp_rtt_msec)",
-				"x-cf-quic-rtt":                               "to_string(cf.timings.client_quic_rtt_msec)",
-				"x-cf-tcp":                                    "to_string(cf.edge.client_tcp)",
-				"x-cf-delivery-rate":                          "to_string(cf.edge.l4.delivery_rate)",
+				"x-real-client-rtt":                           "to_string(cf.timings.client_tcp_rtt_msec)",
+				"x-real-client-quic-rtt":                      "to_string(cf.timings.client_quic_rtt_msec)",
+				"x-real-client-tcp":                           "to_string(cf.edge.client_tcp)",
+				"x-real-client-delivery-rate":                 "to_string(cf.edge.l4.delivery_rate)",
 			}
 
 			for headerName, expectedExpression := range expectedHeaders {
