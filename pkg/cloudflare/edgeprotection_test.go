@@ -76,6 +76,12 @@ func (m *edgeProtectionMocks) NewResource(args pulumi.MockResourceArgs) (string,
 		if mechanisms, ok := args.Inputs["mechanisms"]; ok {
 			outputs["mechanisms"] = mechanisms
 		}
+
+	case "cloudflare:index/botManagement:BotManagement":
+		outputs["zoneId"] = testZoneID
+		if fightMode, ok := args.Inputs["fightMode"]; ok {
+			outputs["fightMode"] = fightMode
+		}
 	}
 
 	return args.Name + "_id", resource.NewPropertyMapFromMap(outputs), nil
@@ -1014,6 +1020,46 @@ func TestNewEdgeProtection_DDoSAttackNotifications(t *testing.T) {
 
 			return nil
 		})
+
+		return nil
+	}, pulumi.WithMocks("project", "stack", &edgeProtectionMocks{}))
+
+	if err != nil {
+		t.Fatalf("Pulumi WithMocks failed: %v", err)
+	}
+}
+
+func TestNewEdgeProtection_BotFightMode(t *testing.T) {
+	t.Parallel()
+
+	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		args := &edge.EdgeProtectionArgs{
+			Upstreams: []edge.Upstream{
+				{
+					DomainURL:        testDomain,
+					CanonicalNameURL: testBackendUpstreamURL,
+				},
+			},
+			CloudflareZone: edge.Zone{
+				CloudflareAccountID: testCloudflareAccountID,
+			},
+			BotFightModeEnabled: true,
+		}
+
+		edgeProtection, err := edge.NewEdgeProtection(ctx, "test-bot-fight-mode", args)
+		require.NoError(t, err)
+
+		botManagement := edgeProtection.GetBotManagement()
+		require.NotNil(t, botManagement, "Bot management resource should not be nil")
+
+		fightModeCh := make(chan bool, 1)
+		defer close(fightModeCh)
+		botManagement.FightMode.ApplyT(func(enabled bool) error {
+			fightModeCh <- enabled
+
+			return nil
+		})
+		assert.True(t, <-fightModeCh, "Bot Fight Mode should be enabled")
 
 		return nil
 	}, pulumi.WithMocks("project", "stack", &edgeProtectionMocks{}))

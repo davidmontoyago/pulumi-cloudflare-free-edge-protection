@@ -14,6 +14,7 @@ Pulumi component to setup internet-grade protection under the Cloudlflare free t
 - Cache web assets
 - [Challenge requests](https://developers.cloudflare.com/cloudflare-challenges/) based on threat score
 - Request header transforms to pass real client IP, geolocation, TLS, and transport headers to upstream
+- Optional [Bot Fight Mode](https://developers.cloudflare.com/bots/get-started/bot-fight-mode/)
 
 ### Pre-requisites
 - A cloudflare free tier account
@@ -48,6 +49,8 @@ cloudflareEdgeProxy, err := cloudflare.NewEdgeProtection(ctx, "my-endpoint-edge-
   // Required for GCP Cloud Run instances with Domain Mapping
   AlwaysUseHTTPS:    pulumi.Bool(false),
   TLSEncryptionMode: pulumi.String("full"),
+  // Optional: enable Cloudflare Bot Fight Mode (can challenge API/mobile clients)
+  BotFightModeEnabled: true,
 })
 if err != nil {
   return fmt.Errorf("failed to setup cloudflare protection: %w", err)
@@ -91,6 +94,18 @@ if err != nil {
 This component does not manage the Free Managed Ruleset. Cloudflare automatically deploys the Free Managed Ruleset on free zones (including zones provisioned via API/IaC) hence not managed by this component. This ruleset provides baseline managed WAF protection against high-impact, widely exploited vulnerabilities (for example, major RCE and injection exploit patterns).
 
 See: https://developers.cloudflare.com/waf/managed-rules/
+
+#### Bot Fight Mode (optional)
+
+Enable with `BotFightModeEnabled: true` in `EdgeProtectionArgs`.
+Bot Fight Mode runs outside the Ruleset Engine and cannot be skipped by custom rules, so evaluate impact on API/mobile/automation traffic before enabling.
+When enabled, JavaScript Detections are automatically enabled by Cloudflare and cannot be disabled.
+
+If your app enforces CSP, ensure your policy allows Cloudflare challenge scripts under `/cdn-cgi/challenge-platform/` (for example with `script-src 'self'`). If your CSP uses script `nonce` values, Cloudflare can reuse them from the response header; avoid relying on `unsafe-inline`.
+
+See:
+- https://developers.cloudflare.com/bots/get-started/bot-fight-mode/
+- https://developers.cloudflare.com/waf/feature-interoperability/
 
 Rules
 - 70 Cloudflare Rules

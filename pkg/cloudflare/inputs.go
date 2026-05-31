@@ -76,4 +76,9 @@ type EdgeProtectionArgs struct {
 	Labels map[string]string
 	// Where to send DDoS attack notifications. Disabled if unset.
 	DDoSAttackNotificationsEmail string
+	// Whether to enable Cloudflare Bot Fight Mode. Defaults to false.
+	// Bot Fight Mode runs outside the Ruleset Engine and cannot be skipped with custom rules.
+	// Bot Fight Mode also enables JavaScript Detections, so strict CSP policies may require
+	// updates to allow Cloudflare challenge scripts.
+	BotFightModeEnabled bool
 }
