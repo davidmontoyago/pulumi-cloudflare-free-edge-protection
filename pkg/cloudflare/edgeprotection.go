@@ -29,6 +29,7 @@ type EdgeProtection struct {
 	TLS13Enabled                 pulumi.BoolOutput
 	BrowserCheckEnabled          pulumi.BoolOutput
 	DDoSAttackNotificationsEmail string
+	BotFightModeEnabled          bool
 	Labels                       map[string]string
 
 	name string
@@ -47,6 +48,7 @@ type EdgeProtection struct {
 	freeTierRulesCount pulumi.IntOutput
 
 	ddosAttackNotifications *cloudflare.NotificationPolicy
+	botManagement           *cloudflare.BotManagement
 }
 
 // NewEdgeProtection creates a new EdgeProtection instance with the provided configuration.
@@ -75,6 +77,7 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		TLS13Enabled:                 setDefaultBool(args.TLS13Enabled, true),
 		BrowserCheckEnabled:          setDefaultBool(args.BrowserCheckEnabled, true),
 		DDoSAttackNotificationsEmail: args.DDoSAttackNotificationsEmail,
+		BotFightModeEnabled:          args.BotFightModeEnabled,
 		Labels:                       args.Labels,
 
 		name: name,
@@ -105,6 +108,7 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		"cloudflare_config_ruleset_id":         edgeProtection.configRuleset.ID(),
 		"cloudflare_transform_ruleset_id":      edgeProtection.transformRuleset.ID(),
 		"cloudflare_ruleset_rules_count":       edgeProtection.freeTierRulesCount,
+		"cloudflare_bot_fight_mode_enabled":    pulumi.Bool(edgeProtection.BotFightModeEnabled),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to register resource outputs: %w", err)
@@ -191,7 +195,16 @@ func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 		return nil
 	})
 
-	// 9. Create DDoS attack notifications
+	// 9. Optionally enable Bot Fight Mode.
+	if e.BotFightModeEnabled {
+		botManagement, err := e.enableBotFightMode(ctx, zone)
+		if err != nil {
+			return fmt.Errorf("failed to enable bot fight mode: %w", err)
+		}
+		e.botManagement = botManagement
+	}
+
+	// 10. Create DDoS attack notifications
 	if e.DDoSAttackNotificationsEmail != "" {
 		ddosAttackNotifications, err := e.setupDDoSAttackNotifications(ctx, e.DDoSAttackNotificationsEmail)
 		if err != nil {
@@ -258,4 +271,9 @@ func (e *EdgeProtection) GetRequestHeaderTransformRuleset() *cloudflare.Ruleset 
 // GetDDoSAttackNotifications returns the DDoS attack notification policy resource.
 func (e *EdgeProtection) GetDDoSAttackNotifications() *cloudflare.NotificationPolicy {
 	return e.ddosAttackNotifications
+}
+
+// GetBotManagement returns the bot management resource.
+func (e *EdgeProtection) GetBotManagement() *cloudflare.BotManagement {
+	return e.botManagement
 }
