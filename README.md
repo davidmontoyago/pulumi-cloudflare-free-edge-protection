@@ -86,6 +86,12 @@ if err != nil {
 - Fast, easy-to-use DNS
 - Global CDN
 
+#### Free Managed Ruleset (default)
+
+This component does not manage the Free Managed Ruleset. Cloudflare automatically deploys the Free Managed Ruleset on free zones (including zones provisioned via API/IaC) hence not managed by this component. This ruleset provides baseline managed WAF protection against high-impact, widely exploited vulnerabilities (for example, major RCE and injection exploit patterns).
+
+See: https://developers.cloudflare.com/waf/managed-rules/
+
 Rules
 - 70 Cloudflare Rules
 - 5 WAF Rules
