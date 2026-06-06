@@ -13,6 +13,8 @@ func (e *EdgeProtection) enableBotFightMode(ctx *pulumi.Context, zone *cloudflar
 	botManagement, err := cloudflare.NewBotManagement(ctx, e.NewResourceName("bot-management", "security", 63), &cloudflare.BotManagementArgs{
 		ZoneId:    zone.ID(),
 		FightMode: pulumi.Bool(true),
+		// Cloudflare requires JavaScript Detections when Bot Fight Mode is enabled.
+		EnableJs: pulumi.Bool(true),
 	}, pulumi.Parent(e))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create bot management resource: %w", err)
