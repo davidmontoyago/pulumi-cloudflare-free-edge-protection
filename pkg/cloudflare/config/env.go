@@ -14,24 +14,24 @@ import (
 // Config is a helper for loading and launching via environment variables
 // Defaults to a single backend for the upstream.
 type Config struct {
-	CloudflareAPIToken           string `envconfig:"CLOUDFLARE_API_TOKEN" required:"true"`
-	CloudflareAccountID          string `envconfig:"CLOUDFLARE_ACCOUNT_ID" required:"true"`
-	BackendURL                   string `envconfig:"BACKEND_URL" required:"true"`
-	BackendUpstreamURL           string `envconfig:"BACKEND_UPSTREAM_URL" required:"true"`
-	SecurityLevel                string `envconfig:"SECURITY_LEVEL" default:"medium"`
-	BrowserCacheTTL              int    `envconfig:"BROWSER_CACHE_TTL" default:"14400"`
-	EdgeCacheTTLSeconds          int    `envconfig:"EDGE_CACHE_TTL_SECONDS" default:"2419200"`
-	RateLimitThreshold           int    `envconfig:"RATE_LIMIT_THRESHOLD" default:"60"`
-	RateLimitMode                string `envconfig:"RATE_LIMIT_MODE" default:"block"`
-	TLSEncryptionMode            string `envconfig:"TLS_ENCRYPTION_MODE" default:"strict"`
-	MinTLSVersion                string `envconfig:"MIN_TLS_VERSION" default:"1.2"`
-	AlwaysUseHTTPS               bool   `envconfig:"ALWAYS_USE_HTTPS" default:"true"`
-	TLS13Enabled                 bool   `envconfig:"TLS_13_ENABLED" default:"true"`
-	BrowserCheckEnabled          bool   `envconfig:"BROWSER_CHECK_ENABLED" default:"true"`
-	HSTSEnabled                  bool   `envconfig:"HSTS_ENABLED" default:"true"`
+	CloudflareAPIToken            string `envconfig:"CLOUDFLARE_API_TOKEN" required:"true"`
+	CloudflareAccountID           string `envconfig:"CLOUDFLARE_ACCOUNT_ID" required:"true"`
+	BackendURL                    string `envconfig:"BACKEND_URL" required:"true"`
+	BackendUpstreamURL            string `envconfig:"BACKEND_UPSTREAM_URL" required:"true"`
+	SecurityLevel                 string `envconfig:"SECURITY_LEVEL" default:"medium"`
+	BrowserCacheTTL               int    `envconfig:"BROWSER_CACHE_TTL" default:"14400"`
+	EdgeCacheTTLSeconds           int    `envconfig:"EDGE_CACHE_TTL_SECONDS" default:"2419200"`
+	RateLimitThreshold            int    `envconfig:"RATE_LIMIT_THRESHOLD" default:"60"`
+	RateLimitMode                 string `envconfig:"RATE_LIMIT_MODE" default:"block"`
+	TLSEncryptionMode             string `envconfig:"TLS_ENCRYPTION_MODE" default:"strict"`
+	MinTLSVersion                 string `envconfig:"MIN_TLS_VERSION" default:"1.2"`
+	AlwaysUseHTTPS                bool   `envconfig:"ALWAYS_USE_HTTPS" default:"true"`
+	TLS13Enabled                  bool   `envconfig:"TLS_13_ENABLED" default:"true"`
+	BrowserCheckEnabled           bool   `envconfig:"BROWSER_CHECK_ENABLED" default:"true"`
+	HSTSEnabled                   bool   `envconfig:"HSTS_ENABLED" default:"true"`
 	AutomaticHTTPSRewritesEnabled bool   `envconfig:"AUTOMATIC_HTTPS_REWRITES_ENABLED" default:"true"`
-	HotlinkProtectionEnabled     bool   `envconfig:"HOTLINK_PROTECTION_ENABLED" default:"false"`
-	DDoSAttackNotificationsEmail string `envconfig:"DDOS_ATTACK_NOTIFICATIONS_EMAIL" default:""`
+	HotlinkProtectionEnabled      bool   `envconfig:"HOTLINK_PROTECTION_ENABLED" default:"false"`
+	DDoSAttackNotificationsEmail  string `envconfig:"DDOS_ATTACK_NOTIFICATIONS_EMAIL" default:""`
 }
 
 // LoadConfig loads configuration from environment variables
@@ -77,20 +77,20 @@ func (c *Config) ToEdgeProtectionArgs() *cloudflare.EdgeProtectionArgs {
 			CloudflareAccountID: c.CloudflareAccountID,
 			Protected:           true,
 		},
-		SecurityLevel:                pulumi.String(c.SecurityLevel),
-		BrowserCacheTTL:              pulumi.Int(c.BrowserCacheTTL),
-		EdgeCacheTTLSeconds:          pulumi.Int(c.EdgeCacheTTLSeconds),
-		RateLimitThreshold:           pulumi.Int(c.RateLimitThreshold),
-		RateLimitMode:                pulumi.String(c.RateLimitMode),
-		TLSEncryptionMode:            pulumi.String(c.TLSEncryptionMode),
-		MinTLSVersion:                pulumi.String(c.MinTLSVersion),
-		AlwaysUseHTTPS:               pulumi.Bool(c.AlwaysUseHTTPS),
-		TLS13Enabled:                 pulumi.Bool(c.TLS13Enabled),
-		BrowserCheckEnabled:          pulumi.Bool(c.BrowserCheckEnabled),
-		HSTSEnabled:                  pulumi.Bool(c.HSTSEnabled),
+		SecurityLevel:                 pulumi.String(c.SecurityLevel),
+		BrowserCacheTTL:               pulumi.Int(c.BrowserCacheTTL),
+		EdgeCacheTTLSeconds:           pulumi.Int(c.EdgeCacheTTLSeconds),
+		RateLimitThreshold:            pulumi.Int(c.RateLimitThreshold),
+		RateLimitMode:                 pulumi.String(c.RateLimitMode),
+		TLSEncryptionMode:             pulumi.String(c.TLSEncryptionMode),
+		MinTLSVersion:                 pulumi.String(c.MinTLSVersion),
+		AlwaysUseHTTPS:                pulumi.Bool(c.AlwaysUseHTTPS),
+		TLS13Enabled:                  pulumi.Bool(c.TLS13Enabled),
+		BrowserCheckEnabled:           pulumi.Bool(c.BrowserCheckEnabled),
+		HSTSEnabled:                   pulumi.Bool(c.HSTSEnabled),
 		AutomaticHTTPSRewritesEnabled: pulumi.Bool(c.AutomaticHTTPSRewritesEnabled),
-		HotlinkProtectionEnabled:     pulumi.Bool(c.HotlinkProtectionEnabled),
-		DDoSAttackNotificationsEmail: c.DDoSAttackNotificationsEmail,
+		HotlinkProtectionEnabled:      pulumi.Bool(c.HotlinkProtectionEnabled),
+		DDoSAttackNotificationsEmail:  c.DDoSAttackNotificationsEmail,
 	}
 
 	return args
