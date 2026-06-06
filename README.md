@@ -9,6 +9,7 @@ Pulumi component to setup internet-grade protection under the Cloudlflare free t
 - L4 and L7 DDoS protection
 - Rate limits
 - WAF rules to block common attack patterns
+- HSTS via `security_header` (enabled by default)
 - TLS enforcement
 - Browser integrity checks
 - Cache web assets
@@ -49,6 +50,8 @@ cloudflareEdgeProxy, err := cloudflare.NewEdgeProtection(ctx, "my-endpoint-edge-
   // Required for GCP Cloud Run instances with Domain Mapping
   AlwaysUseHTTPS:    pulumi.Bool(false),
   TLSEncryptionMode: pulumi.String("full"),
+  // Optional: disable default HSTS behavior
+  HSTSEnabled: pulumi.Bool(true),
   // Optional: enable Cloudflare Bot Fight Mode (can challenge API/mobile clients)
   BotFightModeEnabled: true,
 })
@@ -94,6 +97,17 @@ if err != nil {
 This component does not manage the Free Managed Ruleset. Cloudflare automatically deploys the Free Managed Ruleset on free zones (including zones provisioned via API/IaC) hence not managed by this component. This ruleset provides baseline managed WAF protection against high-impact, widely exploited vulnerabilities (for example, major RCE and injection exploit patterns).
 
 See: https://developers.cloudflare.com/waf/managed-rules/
+
+#### HSTS (default)
+
+This component enables HSTS by default with Cloudflare `security_header` (`strictTransportSecurity`) using:
+- `enabled: true`
+- `maxAge: 31536000` (1 year)
+- `includeSubdomains: true`
+- `nosniff: true`
+- `preload: false`
+
+Disable by setting `HSTSEnabled: pulumi.Bool(false)`.
 
 #### Bot Fight Mode (optional)
 

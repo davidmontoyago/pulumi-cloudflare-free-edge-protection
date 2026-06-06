@@ -121,6 +121,7 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 			AlwaysUseHTTPS:      pulumi.Bool(true),
 			TLS13Enabled:        pulumi.Bool(true),
 			BrowserCheckEnabled: pulumi.Bool(true),
+			HSTSEnabled:         pulumi.Bool(false),
 			Labels: map[string]string{
 				"environment": "test",
 				"team":        "edge-protection",
@@ -186,6 +187,15 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 			return nil
 		})
 		assert.Equal(t, "full", <-tlsModeCh, "SSL mode should match")
+
+		hstsEnabledCh := make(chan bool, 1)
+		defer close(hstsEnabledCh)
+		edgeProtection.HSTSEnabled.ApplyT(func(enabled bool) error {
+			hstsEnabledCh <- enabled
+
+			return nil
+		})
+		assert.False(t, <-hstsEnabledCh, "HSTS should match provided override")
 
 		// Verify zone
 		zone := edgeProtection.GetZone()
@@ -370,6 +380,15 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 			return nil
 		})
 		assert.True(t, <-browserCheckEnabledCh, "Browser check should default to enabled")
+
+		hstsEnabledCh := make(chan bool, 1)
+		defer close(hstsEnabledCh)
+		edgeProtection.HSTSEnabled.ApplyT(func(enabled bool) error {
+			hstsEnabledCh <- enabled
+
+			return nil
+		})
+		assert.True(t, <-hstsEnabledCh, "HSTS should default to enabled")
 
 		return nil
 	}, pulumi.WithMocks("project", "stack", &edgeProtectionMocks{}))
