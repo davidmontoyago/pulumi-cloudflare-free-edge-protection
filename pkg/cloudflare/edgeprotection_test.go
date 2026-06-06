@@ -122,6 +122,7 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 			TLS13Enabled:        pulumi.Bool(true),
 			BrowserCheckEnabled: pulumi.Bool(true),
 			HSTSEnabled:         pulumi.Bool(false),
+			AutomaticHTTPSRewritesEnabled: pulumi.Bool(false),
 			Labels: map[string]string{
 				"environment": "test",
 				"team":        "edge-protection",
@@ -196,6 +197,15 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 			return nil
 		})
 		assert.False(t, <-hstsEnabledCh, "HSTS should match provided override")
+
+		autoHTTPSRewritesCh := make(chan bool, 1)
+		defer close(autoHTTPSRewritesCh)
+		edgeProtection.AutomaticHTTPSRewritesEnabled.ApplyT(func(enabled bool) error {
+			autoHTTPSRewritesCh <- enabled
+
+			return nil
+		})
+		assert.False(t, <-autoHTTPSRewritesCh, "Automatic HTTPS Rewrites should match provided override")
 
 		// Verify zone
 		zone := edgeProtection.GetZone()
@@ -389,6 +399,15 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 			return nil
 		})
 		assert.True(t, <-hstsEnabledCh, "HSTS should default to enabled")
+
+		autoHTTPSRewritesCh := make(chan bool, 1)
+		defer close(autoHTTPSRewritesCh)
+		edgeProtection.AutomaticHTTPSRewritesEnabled.ApplyT(func(enabled bool) error {
+			autoHTTPSRewritesCh <- enabled
+
+			return nil
+		})
+		assert.True(t, <-autoHTTPSRewritesCh, "Automatic HTTPS Rewrites should default to enabled")
 
 		return nil
 	}, pulumi.WithMocks("project", "stack", &edgeProtectionMocks{}))

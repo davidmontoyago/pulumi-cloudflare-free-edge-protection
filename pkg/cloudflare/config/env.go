@@ -29,6 +29,7 @@ type Config struct {
 	TLS13Enabled                 bool   `envconfig:"TLS_13_ENABLED" default:"true"`
 	BrowserCheckEnabled          bool   `envconfig:"BROWSER_CHECK_ENABLED" default:"true"`
 	HSTSEnabled                  bool   `envconfig:"HSTS_ENABLED" default:"true"`
+	AutomaticHTTPSRewritesEnabled bool   `envconfig:"AUTOMATIC_HTTPS_REWRITES_ENABLED" default:"true"`
 	DDoSAttackNotificationsEmail string `envconfig:"DDOS_ATTACK_NOTIFICATIONS_EMAIL" default:""`
 }
 
@@ -56,6 +57,7 @@ func LoadConfig() (*Config, error) {
 	log.Printf("  TLS 1.3 Enabled: %t", config.TLS13Enabled)
 	log.Printf("  Browser Check Enabled: %t", config.BrowserCheckEnabled)
 	log.Printf("  HSTS Enabled: %t", config.HSTSEnabled)
+	log.Printf("  Automatic HTTPS Rewrites Enabled: %t", config.AutomaticHTTPSRewritesEnabled)
 
 	return &config, nil
 }
@@ -84,6 +86,7 @@ func (c *Config) ToEdgeProtectionArgs() *cloudflare.EdgeProtectionArgs {
 		TLS13Enabled:                 pulumi.Bool(c.TLS13Enabled),
 		BrowserCheckEnabled:          pulumi.Bool(c.BrowserCheckEnabled),
 		HSTSEnabled:                  pulumi.Bool(c.HSTSEnabled),
+		AutomaticHTTPSRewritesEnabled: pulumi.Bool(c.AutomaticHTTPSRewritesEnabled),
 		DDoSAttackNotificationsEmail: c.DDoSAttackNotificationsEmail,
 	}
 

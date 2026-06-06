@@ -14,24 +14,25 @@ type EdgeProtection struct {
 	pulumi.ResourceState
 	namer.Namer
 
-	Upstreams                    []Upstream
-	CloudflareZone               Zone
-	SecurityLevel                pulumi.StringOutput
-	BrowserCacheTTL              pulumi.IntOutput
-	EdgeCacheTTLSeconds          pulumi.IntOutput
-	RateLimitThreshold           pulumi.IntOutput
-	RateLimitPeriodSeconds       pulumi.IntOutput
-	MitigationTimeoutSeconds     pulumi.IntOutput
-	RateLimitMode                pulumi.StringOutput
-	TLSEncryptionMode            pulumi.StringOutput
-	MinTLSVersion                pulumi.StringOutput
-	AlwaysUseHTTPS               pulumi.BoolOutput
-	TLS13Enabled                 pulumi.BoolOutput
-	BrowserCheckEnabled          pulumi.BoolOutput
-	HSTSEnabled                  pulumi.BoolOutput
-	DDoSAttackNotificationsEmail string
-	BotFightModeEnabled          bool
-	Labels                       map[string]string
+	Upstreams                     []Upstream
+	CloudflareZone                Zone
+	SecurityLevel                 pulumi.StringOutput
+	BrowserCacheTTL               pulumi.IntOutput
+	EdgeCacheTTLSeconds           pulumi.IntOutput
+	RateLimitThreshold            pulumi.IntOutput
+	RateLimitPeriodSeconds        pulumi.IntOutput
+	MitigationTimeoutSeconds      pulumi.IntOutput
+	RateLimitMode                 pulumi.StringOutput
+	TLSEncryptionMode             pulumi.StringOutput
+	MinTLSVersion                 pulumi.StringOutput
+	AlwaysUseHTTPS                pulumi.BoolOutput
+	TLS13Enabled                  pulumi.BoolOutput
+	BrowserCheckEnabled           pulumi.BoolOutput
+	HSTSEnabled                   pulumi.BoolOutput
+	AutomaticHTTPSRewritesEnabled pulumi.BoolOutput
+	DDoSAttackNotificationsEmail  string
+	BotFightModeEnabled           bool
+	Labels                        map[string]string
 
 	name string
 
@@ -62,25 +63,26 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 	}
 
 	edgeProtection := &EdgeProtection{
-		Namer:                        namer.New(name),
-		Upstreams:                    args.Upstreams,
-		CloudflareZone:               args.CloudflareZone,
-		SecurityLevel:                setDefaultString(args.SecurityLevel, "medium"),
-		BrowserCacheTTL:              setDefaultInt(args.BrowserCacheTTL, 14400),       // 4 hours
-		EdgeCacheTTLSeconds:          setDefaultInt(args.EdgeCacheTTLSeconds, 2419200), // 28 days
-		RateLimitPeriodSeconds:       setDefaultInt(nil, 10),                           // Free tier requires 10 seconds
-		MitigationTimeoutSeconds:     setDefaultInt(nil, 10),                           // Free tier requires 10 seconds
-		RateLimitThreshold:           setDefaultInt(args.RateLimitThreshold, 60),       // 60 requests per 10s period
-		RateLimitMode:                setDefaultString(args.RateLimitMode, "block"),
-		TLSEncryptionMode:            setDefaultString(args.TLSEncryptionMode, "strict"),
-		MinTLSVersion:                setDefaultString(args.MinTLSVersion, "1.2"),
-		AlwaysUseHTTPS:               setDefaultBool(args.AlwaysUseHTTPS, true),
-		TLS13Enabled:                 setDefaultBool(args.TLS13Enabled, true),
-		BrowserCheckEnabled:          setDefaultBool(args.BrowserCheckEnabled, true),
-		HSTSEnabled:                  setDefaultBool(args.HSTSEnabled, true),
-		DDoSAttackNotificationsEmail: args.DDoSAttackNotificationsEmail,
-		BotFightModeEnabled:          args.BotFightModeEnabled,
-		Labels:                       args.Labels,
+		Namer:                         namer.New(name),
+		Upstreams:                     args.Upstreams,
+		CloudflareZone:                args.CloudflareZone,
+		SecurityLevel:                 setDefaultString(args.SecurityLevel, "medium"),
+		BrowserCacheTTL:               setDefaultInt(args.BrowserCacheTTL, 14400),       // 4 hours
+		EdgeCacheTTLSeconds:           setDefaultInt(args.EdgeCacheTTLSeconds, 2419200), // 28 days
+		RateLimitPeriodSeconds:        setDefaultInt(nil, 10),                           // Free tier requires 10 seconds
+		MitigationTimeoutSeconds:      setDefaultInt(nil, 10),                           // Free tier requires 10 seconds
+		RateLimitThreshold:            setDefaultInt(args.RateLimitThreshold, 60),       // 60 requests per 10s period
+		RateLimitMode:                 setDefaultString(args.RateLimitMode, "block"),
+		TLSEncryptionMode:             setDefaultString(args.TLSEncryptionMode, "strict"),
+		MinTLSVersion:                 setDefaultString(args.MinTLSVersion, "1.2"),
+		AlwaysUseHTTPS:                setDefaultBool(args.AlwaysUseHTTPS, true),
+		TLS13Enabled:                  setDefaultBool(args.TLS13Enabled, true),
+		BrowserCheckEnabled:           setDefaultBool(args.BrowserCheckEnabled, true),
+		HSTSEnabled:                   setDefaultBool(args.HSTSEnabled, true),
+		AutomaticHTTPSRewritesEnabled: setDefaultBool(args.AutomaticHTTPSRewritesEnabled, true),
+		DDoSAttackNotificationsEmail:  args.DDoSAttackNotificationsEmail,
+		BotFightModeEnabled:           args.BotFightModeEnabled,
+		Labels:                        args.Labels,
 
 		name: name,
 	}
@@ -97,21 +99,22 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 	}
 
 	err = ctx.RegisterResourceOutputs(edgeProtection, pulumi.Map{
-		"cloudflare_zone_id":                   edgeProtection.zone.ID(),
-		"cloudflare_zone_name":                 edgeProtection.zone.Name,
-		"cloudflare_zone_status":               edgeProtection.zone.Status,
-		"cloudflare_zone_name_servers":         edgeProtection.zone.NameServers,
-		"cloudflare_upstream_dns_record_count": pulumi.Int(len(edgeProtection.upstreamDNSRecords)),
-		"cloudflare_rate_limit_ruleset_id":     edgeProtection.rateLimitRuleset.ID(),
-		"cloudflare_ddos_l7_ruleset_id":        edgeProtection.ddosL7Ruleset.ID(),
-		"cloudflare_waf_custom_ruleset_id":     edgeProtection.wafCustomRuleset.ID(),
-		"cloudflare_cache_ruleset_id":          edgeProtection.cacheRuleset.ID(),
-		"cloudflare_redirect_ruleset_id":       edgeProtection.redirectRuleset.ID(),
-		"cloudflare_config_ruleset_id":         edgeProtection.configRuleset.ID(),
-		"cloudflare_transform_ruleset_id":      edgeProtection.transformRuleset.ID(),
-		"cloudflare_ruleset_rules_count":       edgeProtection.freeTierRulesCount,
-		"cloudflare_bot_fight_mode_enabled":    pulumi.Bool(edgeProtection.BotFightModeEnabled),
-		"cloudflare_hsts_enabled":              edgeProtection.HSTSEnabled,
+		"cloudflare_zone_id":                          edgeProtection.zone.ID(),
+		"cloudflare_zone_name":                        edgeProtection.zone.Name,
+		"cloudflare_zone_status":                      edgeProtection.zone.Status,
+		"cloudflare_zone_name_servers":                edgeProtection.zone.NameServers,
+		"cloudflare_upstream_dns_record_count":        pulumi.Int(len(edgeProtection.upstreamDNSRecords)),
+		"cloudflare_rate_limit_ruleset_id":            edgeProtection.rateLimitRuleset.ID(),
+		"cloudflare_ddos_l7_ruleset_id":               edgeProtection.ddosL7Ruleset.ID(),
+		"cloudflare_waf_custom_ruleset_id":            edgeProtection.wafCustomRuleset.ID(),
+		"cloudflare_cache_ruleset_id":                 edgeProtection.cacheRuleset.ID(),
+		"cloudflare_redirect_ruleset_id":              edgeProtection.redirectRuleset.ID(),
+		"cloudflare_config_ruleset_id":                edgeProtection.configRuleset.ID(),
+		"cloudflare_transform_ruleset_id":             edgeProtection.transformRuleset.ID(),
+		"cloudflare_ruleset_rules_count":              edgeProtection.freeTierRulesCount,
+		"cloudflare_bot_fight_mode_enabled":           pulumi.Bool(edgeProtection.BotFightModeEnabled),
+		"cloudflare_hsts_enabled":                     edgeProtection.HSTSEnabled,
+		"cloudflare_automatic_https_rewrites_enabled": edgeProtection.AutomaticHTTPSRewritesEnabled,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to register resource outputs: %w", err)

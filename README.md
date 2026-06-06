@@ -10,6 +10,7 @@ Pulumi component to setup internet-grade protection under the Cloudlflare free t
 - Rate limits
 - WAF rules to block common attack patterns
 - HSTS via `security_header` (enabled by default)
+- Automatic HTTPS Rewrites (enabled by default)
 - TLS enforcement
 - Browser integrity checks
 - Cache web assets
@@ -52,6 +53,8 @@ cloudflareEdgeProxy, err := cloudflare.NewEdgeProtection(ctx, "my-endpoint-edge-
   TLSEncryptionMode: pulumi.String("full"),
   // Optional: disable default HSTS behavior
   HSTSEnabled: pulumi.Bool(true),
+  // Optional: disable default Automatic HTTPS Rewrites behavior
+  AutomaticHTTPSRewritesEnabled: pulumi.Bool(true),
   // Optional: enable Cloudflare Bot Fight Mode (can challenge API/mobile clients)
   BotFightModeEnabled: true,
 })
@@ -108,6 +111,18 @@ This component enables HSTS by default with Cloudflare `security_header` (`stric
 - `preload: false`
 
 Disable by setting `HSTSEnabled: pulumi.Bool(false)`.
+
+#### Automatic HTTPS Rewrites (default)
+
+This component enables `automatic_https_rewrites` by default to help fix mixed-content references in HTML by rewriting eligible `http://` asset URLs to `https://`.
+
+This is different from:
+- `AlwaysUseHTTPS`, which redirects incoming HTTP requests to HTTPS.
+- Redirect rules, which canonicalize host/path URLs.
+
+Disable by setting `AutomaticHTTPSRewritesEnabled: pulumi.Bool(false)`.
+
+See: https://developers.cloudflare.com/ssl/edge-certificates/additional-options/automatic-https-rewrites/
 
 #### Bot Fight Mode (optional)
 
