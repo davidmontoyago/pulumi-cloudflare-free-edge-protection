@@ -82,6 +82,9 @@ func (m *edgeProtectionMocks) NewResource(args pulumi.MockResourceArgs) (string,
 		if fightMode, ok := args.Inputs["fightMode"]; ok {
 			outputs["fightMode"] = fightMode
 		}
+		if enableJs, ok := args.Inputs["enableJs"]; ok {
+			outputs["enableJs"] = enableJs
+		}
 	}
 
 	return args.Name + "_id", resource.NewPropertyMapFromMap(outputs), nil
@@ -1060,6 +1063,15 @@ func TestNewEdgeProtection_BotFightMode(t *testing.T) {
 			return nil
 		})
 		assert.True(t, <-fightModeCh, "Bot Fight Mode should be enabled")
+
+		enableJsCh := make(chan bool, 1)
+		defer close(enableJsCh)
+		botManagement.EnableJs.ApplyT(func(enabled bool) error {
+			enableJsCh <- enabled
+
+			return nil
+		})
+		assert.True(t, <-enableJsCh, "JavaScript Detections should be enabled with Bot Fight Mode")
 
 		return nil
 	}, pulumi.WithMocks("project", "stack", &edgeProtectionMocks{}))
