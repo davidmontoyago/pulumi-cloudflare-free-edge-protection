@@ -57,10 +57,12 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 	}
 
 	// 4. Always Use HTTPS
-	// An alterative approach is to use a Ruleset on the phase "http_request_dynamic_redirect"
-	// to use the Automatic Https Rewrites feature.
-	// See: https://developers.cloudflare.com/ssl/edge-certificates/additional-options/automatic-https-rewrites/
-	// Favoring always_use_https zone setting to handle redirect before rules are evaluated.
+	// Redirects HTTP requests to HTTPS.
+	// Note: this is different from automatic_https_rewrites, which rewrites mixed-content
+	// asset URLs in page HTML from http:// to https:// when supported.
+	// See:
+	// - https://developers.cloudflare.com/ssl/edge-certificates/additional-options/always-use-https/
+	// - https://developers.cloudflare.com/ssl/edge-certificates/additional-options/automatic-https-rewrites/
 	alwaysHTTPSSetting, err := cloudflare.NewZoneSetting(ctx, e.NewResourceName("always-https", "tls", 63), &cloudflare.ZoneSettingArgs{
 		ZoneId:    zone.ID(),
 		SettingId: pulumi.String("always_use_https"),
@@ -76,7 +78,23 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 		return nil, fmt.Errorf("failed to configure Always Use HTTPS: %w", err)
 	}
 
-	// 5. Strict Transport Security (HSTS)
+	// 5. Automatic HTTPS Rewrites
+	autoHTTPSRewritesSetting, err := cloudflare.NewZoneSetting(ctx, e.NewResourceName("auto-https-rewrites", "tls", 63), &cloudflare.ZoneSettingArgs{
+		ZoneId:    zone.ID(),
+		SettingId: pulumi.String("automatic_https_rewrites"),
+		Value: e.AutomaticHTTPSRewritesEnabled.ApplyT(func(enabled bool) string {
+			if enabled {
+				return "on"
+			}
+
+			return "off"
+		}).(pulumi.StringOutput),
+	}, pulumi.Parent(e))
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure Automatic HTTPS Rewrites: %w", err)
+	}
+
+	// 6. Strict Transport Security (HSTS)
 	// Cloudflare API "security_header" requires nested strict transport security fields.
 	// See:
 	// - https://developers.cloudflare.com/api/resources/zones/subresources/settings/methods/edit/
@@ -100,7 +118,7 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 		return nil, fmt.Errorf("failed to configure HSTS security header: %w", err)
 	}
 
-	// 6. Automatic universal certificates for all domains.
+	// 7. Automatic universal certificates for all domains.
 	// Automatic, no configuration needed. Ensure domain is added to Cloudflare
 	// and it will automatically get Universal certs.
 	//
@@ -117,6 +135,7 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 		minTLSSetting,
 		tls13Setting,
 		alwaysHTTPSSetting,
+		autoHTTPSRewritesSetting,
 		hstsSetting,
 	}, nil
 }

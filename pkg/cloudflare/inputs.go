@@ -79,6 +79,10 @@ type EdgeProtectionArgs struct {
 	// - nosniff: true
 	// - preload: false
 	HSTSEnabled pulumi.BoolInput
+	// Whether to enable Automatic HTTPS Rewrites (optional, defaults to true).
+	// This rewrites mixed-content HTTP asset URLs in HTML to HTTPS when supported.
+	// This is independent from AlwaysUseHTTPS redirects.
+	AutomaticHTTPSRewritesEnabled pulumi.BoolInput
 	// Additional labels to apply to resources
 	Labels map[string]string
 	// Where to send DDoS attack notifications. Disabled if unset.
