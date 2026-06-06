@@ -94,7 +94,23 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 		return nil, fmt.Errorf("failed to configure Automatic HTTPS Rewrites: %w", err)
 	}
 
-	// 6. Strict Transport Security (HSTS)
+	// 6. Hotlink Protection (off by default)
+	hotlinkProtectionSetting, err := cloudflare.NewZoneSetting(ctx, e.NewResourceName("hotlink-protection", "tls", 63), &cloudflare.ZoneSettingArgs{
+		ZoneId:    zone.ID(),
+		SettingId: pulumi.String("hotlink_protection"),
+		Value: e.HotlinkProtectionEnabled.ApplyT(func(enabled bool) string {
+			if enabled {
+				return "on"
+			}
+
+			return "off"
+		}).(pulumi.StringOutput),
+	}, pulumi.Parent(e))
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure Hotlink Protection: %w", err)
+	}
+
+	// 7. Strict Transport Security (HSTS)
 	// Cloudflare API "security_header" requires nested strict transport security fields.
 	// See:
 	// - https://developers.cloudflare.com/api/resources/zones/subresources/settings/methods/edit/
@@ -118,7 +134,7 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 		return nil, fmt.Errorf("failed to configure HSTS security header: %w", err)
 	}
 
-	// 7. Automatic universal certificates for all domains.
+	// 8. Automatic universal certificates for all domains.
 	// Automatic, no configuration needed. Ensure domain is added to Cloudflare
 	// and it will automatically get Universal certs.
 	//
@@ -136,6 +152,7 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 		tls13Setting,
 		alwaysHTTPSSetting,
 		autoHTTPSRewritesSetting,
+		hotlinkProtectionSetting,
 		hstsSetting,
 	}, nil
 }

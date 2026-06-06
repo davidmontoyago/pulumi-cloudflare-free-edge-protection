@@ -11,6 +11,7 @@ Pulumi component to setup internet-grade protection under the Cloudlflare free t
 - WAF rules to block common attack patterns
 - HSTS via `security_header` (enabled by default)
 - Automatic HTTPS Rewrites (enabled by default)
+- Optional Hotlink Protection for images
 - TLS enforcement
 - Browser integrity checks
 - Cache web assets
@@ -55,6 +56,8 @@ cloudflareEdgeProxy, err := cloudflare.NewEdgeProtection(ctx, "my-endpoint-edge-
   HSTSEnabled: pulumi.Bool(true),
   // Optional: disable default Automatic HTTPS Rewrites behavior
   AutomaticHTTPSRewritesEnabled: pulumi.Bool(true),
+  // Optional: enable Hotlink Protection for image embedding control
+  HotlinkProtectionEnabled: pulumi.Bool(false),
   // Optional: enable Cloudflare Bot Fight Mode (can challenge API/mobile clients)
   BotFightModeEnabled: true,
 })
@@ -123,6 +126,17 @@ This is different from:
 Disable by setting `AutomaticHTTPSRewritesEnabled: pulumi.Bool(false)`.
 
 See: https://developers.cloudflare.com/ssl/edge-certificates/additional-options/automatic-https-rewrites/
+
+#### Hotlink Protection (optional)
+
+Enable with `HotlinkProtectionEnabled: pulumi.Bool(true)`.
+This turns on Cloudflare `hotlink_protection` to block image embedding from external referrers.
+
+Use carefully: this can block legitimate external image usage (for example social platforms, partner embeds, or external previews) unless you add specific exceptions using Configuration Rules or custom rules.
+
+See:
+- https://developers.cloudflare.com/waf/tools/scrape-shield/hotlink-protection/
+- https://developers.cloudflare.com/waf/custom-rules/use-cases/exempt-partners-hotlink-protection/
 
 #### Bot Fight Mode (optional)
 

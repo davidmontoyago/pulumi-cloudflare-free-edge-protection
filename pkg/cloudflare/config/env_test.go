@@ -38,6 +38,7 @@ func TestLoadConfig_HappyPath(t *testing.T) {
 		"BROWSER_CHECK_ENABLED":  "false",
 		"HSTS_ENABLED":           "false",
 		"AUTOMATIC_HTTPS_REWRITES_ENABLED": "false",
+		"HOTLINK_PROTECTION_ENABLED": "true",
 	}
 
 	// Set environment variables
@@ -73,6 +74,7 @@ func TestLoadConfig_HappyPath(t *testing.T) {
 	assert.False(t, config.BrowserCheckEnabled)
 	assert.False(t, config.HSTSEnabled)
 	assert.False(t, config.AutomaticHTTPSRewritesEnabled)
+	assert.True(t, config.HotlinkProtectionEnabled)
 }
 
 //nolint:paralleltest // Uses environment variables
@@ -119,6 +121,7 @@ func TestLoadConfig_WithDefaults(t *testing.T) {
 	assert.True(t, config.BrowserCheckEnabled)
 	assert.True(t, config.HSTSEnabled)
 	assert.True(t, config.AutomaticHTTPSRewritesEnabled)
+	assert.False(t, config.HotlinkProtectionEnabled)
 	assert.Empty(t, config.DDoSAttackNotificationsEmail)
 }
 
@@ -238,4 +241,5 @@ func TestToEdgeProtectionArgs(t *testing.T) {
 	assert.NotNil(t, args.BrowserCheckEnabled)
 	assert.NotNil(t, args.HSTSEnabled)
 	assert.NotNil(t, args.AutomaticHTTPSRewritesEnabled)
+	assert.NotNil(t, args.HotlinkProtectionEnabled)
 }
