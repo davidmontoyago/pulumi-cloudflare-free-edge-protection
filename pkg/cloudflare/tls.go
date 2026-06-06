@@ -10,6 +10,8 @@ import (
 const (
 	// hstsMaxAgeSeconds configures HSTS for one year.
 	hstsMaxAgeSeconds = 31536000
+	settingOn         = "on"
+	settingOff        = "off"
 )
 
 // configureTLSSettings configures SSL/TLS settings for the zone.
@@ -46,10 +48,10 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 		SettingId: pulumi.String("tls_1_3"), // Note: tls_1_3, not tls_13
 		Value: e.TLS13Enabled.ApplyT(func(enabled bool) string {
 			if enabled {
-				return "on"
+				return settingOn
 			}
 
-			return "off"
+			return settingOff
 		}).(pulumi.StringOutput),
 	}, pulumi.Parent(e))
 	if err != nil {
@@ -68,10 +70,10 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 		SettingId: pulumi.String("always_use_https"),
 		Value: e.AlwaysUseHTTPS.ApplyT(func(enabled bool) string {
 			if enabled {
-				return "on"
+				return settingOn
 			}
 
-			return "off"
+			return settingOff
 		}).(pulumi.StringOutput),
 	}, pulumi.Parent(e))
 	if err != nil {
@@ -84,10 +86,10 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 		SettingId: pulumi.String("automatic_https_rewrites"),
 		Value: e.AutomaticHTTPSRewritesEnabled.ApplyT(func(enabled bool) string {
 			if enabled {
-				return "on"
+				return settingOn
 			}
 
-			return "off"
+			return settingOff
 		}).(pulumi.StringOutput),
 	}, pulumi.Parent(e))
 	if err != nil {
@@ -100,10 +102,10 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 		SettingId: pulumi.String("hotlink_protection"),
 		Value: e.HotlinkProtectionEnabled.ApplyT(func(enabled bool) string {
 			if enabled {
-				return "on"
+				return settingOn
 			}
 
-			return "off"
+			return settingOff
 		}).(pulumi.StringOutput),
 	}, pulumi.Parent(e))
 	if err != nil {
