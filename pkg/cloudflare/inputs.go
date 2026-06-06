@@ -83,6 +83,10 @@ type EdgeProtectionArgs struct {
 	// This rewrites mixed-content HTTP asset URLs in HTML to HTTPS when supported.
 	// This is independent from AlwaysUseHTTPS redirects.
 	AutomaticHTTPSRewritesEnabled pulumi.BoolInput
+	// Whether to enable Hotlink Protection (optional, defaults to false).
+	// Hotlink Protection blocks external sites from embedding your images based on Referer.
+	// Enable only when this behavior matches your content-sharing requirements.
+	HotlinkProtectionEnabled pulumi.BoolInput
 	// Additional labels to apply to resources
 	Labels map[string]string
 	// Where to send DDoS attack notifications. Disabled if unset.

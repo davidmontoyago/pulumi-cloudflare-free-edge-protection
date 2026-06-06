@@ -30,6 +30,7 @@ type Config struct {
 	BrowserCheckEnabled          bool   `envconfig:"BROWSER_CHECK_ENABLED" default:"true"`
 	HSTSEnabled                  bool   `envconfig:"HSTS_ENABLED" default:"true"`
 	AutomaticHTTPSRewritesEnabled bool   `envconfig:"AUTOMATIC_HTTPS_REWRITES_ENABLED" default:"true"`
+	HotlinkProtectionEnabled     bool   `envconfig:"HOTLINK_PROTECTION_ENABLED" default:"false"`
 	DDoSAttackNotificationsEmail string `envconfig:"DDOS_ATTACK_NOTIFICATIONS_EMAIL" default:""`
 }
 
@@ -58,6 +59,7 @@ func LoadConfig() (*Config, error) {
 	log.Printf("  Browser Check Enabled: %t", config.BrowserCheckEnabled)
 	log.Printf("  HSTS Enabled: %t", config.HSTSEnabled)
 	log.Printf("  Automatic HTTPS Rewrites Enabled: %t", config.AutomaticHTTPSRewritesEnabled)
+	log.Printf("  Hotlink Protection Enabled: %t", config.HotlinkProtectionEnabled)
 
 	return &config, nil
 }
@@ -87,6 +89,7 @@ func (c *Config) ToEdgeProtectionArgs() *cloudflare.EdgeProtectionArgs {
 		BrowserCheckEnabled:          pulumi.Bool(c.BrowserCheckEnabled),
 		HSTSEnabled:                  pulumi.Bool(c.HSTSEnabled),
 		AutomaticHTTPSRewritesEnabled: pulumi.Bool(c.AutomaticHTTPSRewritesEnabled),
+		HotlinkProtectionEnabled:     pulumi.Bool(c.HotlinkProtectionEnabled),
 		DDoSAttackNotificationsEmail: c.DDoSAttackNotificationsEmail,
 	}
 

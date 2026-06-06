@@ -123,6 +123,7 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 			BrowserCheckEnabled: pulumi.Bool(true),
 			HSTSEnabled:         pulumi.Bool(false),
 			AutomaticHTTPSRewritesEnabled: pulumi.Bool(false),
+			HotlinkProtectionEnabled:      pulumi.Bool(true),
 			Labels: map[string]string{
 				"environment": "test",
 				"team":        "edge-protection",
@@ -206,6 +207,15 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 			return nil
 		})
 		assert.False(t, <-autoHTTPSRewritesCh, "Automatic HTTPS Rewrites should match provided override")
+
+		hotlinkProtectionCh := make(chan bool, 1)
+		defer close(hotlinkProtectionCh)
+		edgeProtection.HotlinkProtectionEnabled.ApplyT(func(enabled bool) error {
+			hotlinkProtectionCh <- enabled
+
+			return nil
+		})
+		assert.True(t, <-hotlinkProtectionCh, "Hotlink Protection should match provided override")
 
 		// Verify zone
 		zone := edgeProtection.GetZone()
@@ -408,6 +418,15 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 			return nil
 		})
 		assert.True(t, <-autoHTTPSRewritesCh, "Automatic HTTPS Rewrites should default to enabled")
+
+		hotlinkProtectionCh := make(chan bool, 1)
+		defer close(hotlinkProtectionCh)
+		edgeProtection.HotlinkProtectionEnabled.ApplyT(func(enabled bool) error {
+			hotlinkProtectionCh <- enabled
+
+			return nil
+		})
+		assert.False(t, <-hotlinkProtectionCh, "Hotlink Protection should default to disabled")
 
 		return nil
 	}, pulumi.WithMocks("project", "stack", &edgeProtectionMocks{}))
