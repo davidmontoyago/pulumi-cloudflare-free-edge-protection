@@ -72,6 +72,13 @@ type EdgeProtectionArgs struct {
 	TLS13Enabled pulumi.BoolInput
 	// Whether to enable browser check for bot protection (optional, defaults to true)
 	BrowserCheckEnabled pulumi.BoolInput
+	// Whether to enable HSTS via Cloudflare security_header setting (optional, defaults to true).
+	// When enabled, this component sets strict transport security with:
+	// - max-age: 31536000 (1 year)
+	// - includeSubDomains: true
+	// - nosniff: true
+	// - preload: false
+	HSTSEnabled pulumi.BoolInput
 	// Additional labels to apply to resources
 	Labels map[string]string
 	// Where to send DDoS attack notifications. Disabled if unset.

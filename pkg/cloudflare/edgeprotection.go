@@ -28,6 +28,7 @@ type EdgeProtection struct {
 	AlwaysUseHTTPS               pulumi.BoolOutput
 	TLS13Enabled                 pulumi.BoolOutput
 	BrowserCheckEnabled          pulumi.BoolOutput
+	HSTSEnabled                  pulumi.BoolOutput
 	DDoSAttackNotificationsEmail string
 	BotFightModeEnabled          bool
 	Labels                       map[string]string
@@ -76,6 +77,7 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		AlwaysUseHTTPS:               setDefaultBool(args.AlwaysUseHTTPS, true),
 		TLS13Enabled:                 setDefaultBool(args.TLS13Enabled, true),
 		BrowserCheckEnabled:          setDefaultBool(args.BrowserCheckEnabled, true),
+		HSTSEnabled:                  setDefaultBool(args.HSTSEnabled, true),
 		DDoSAttackNotificationsEmail: args.DDoSAttackNotificationsEmail,
 		BotFightModeEnabled:          args.BotFightModeEnabled,
 		Labels:                       args.Labels,
@@ -109,6 +111,7 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		"cloudflare_transform_ruleset_id":      edgeProtection.transformRuleset.ID(),
 		"cloudflare_ruleset_rules_count":       edgeProtection.freeTierRulesCount,
 		"cloudflare_bot_fight_mode_enabled":    pulumi.Bool(edgeProtection.BotFightModeEnabled),
+		"cloudflare_hsts_enabled":              edgeProtection.HSTSEnabled,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to register resource outputs: %w", err)

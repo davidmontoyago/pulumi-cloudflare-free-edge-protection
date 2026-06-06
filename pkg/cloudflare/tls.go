@@ -7,6 +7,11 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+const (
+	// hstsMaxAgeSeconds configures HSTS for one year.
+	hstsMaxAgeSeconds = 31536000
+)
+
 // configureTLSSettings configures SSL/TLS settings for the zone.
 func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudflare.Zone) ([]*cloudflare.ZoneSetting, error) {
 	// 1. SSL/TLS Encryption Mode
@@ -71,6 +76,30 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 		return nil, fmt.Errorf("failed to configure Always Use HTTPS: %w", err)
 	}
 
+	// 5. Strict Transport Security (HSTS)
+	// Cloudflare API "security_header" requires nested strict transport security fields.
+	// See:
+	// - https://developers.cloudflare.com/api/resources/zones/subresources/settings/methods/edit/
+	// - https://www.pulumi.com/registry/packages/cloudflare/api-docs/zonesetting/
+	hstsSetting, err := cloudflare.NewZoneSetting(ctx, e.NewResourceName("hsts", "tls", 63), &cloudflare.ZoneSettingArgs{
+		ZoneId:    zone.ID(),
+		SettingId: pulumi.String("security_header"),
+		Value: e.HSTSEnabled.ApplyT(func(enabled bool) interface{} {
+			return map[string]interface{}{
+				"strictTransportSecurity": map[string]interface{}{
+					"enabled":           enabled,
+					"includeSubdomains": true,
+					"maxAge":            hstsMaxAgeSeconds,
+					"nosniff":           true,
+					"preload":           false,
+				},
+			}
+		}).(pulumi.AnyOutput),
+	}, pulumi.Parent(e))
+	if err != nil {
+		return nil, fmt.Errorf("failed to configure HSTS security header: %w", err)
+	}
+
 	// 6. Automatic universal certificates for all domains.
 	// Automatic, no configuration needed. Ensure domain is added to Cloudflare
 	// and it will automatically get Universal certs.
@@ -88,5 +117,6 @@ func (e *EdgeProtection) configureTLSSettings(ctx *pulumi.Context, zone *cloudfl
 		minTLSSetting,
 		tls13Setting,
 		alwaysHTTPSSetting,
+		hstsSetting,
 	}, nil
 }
