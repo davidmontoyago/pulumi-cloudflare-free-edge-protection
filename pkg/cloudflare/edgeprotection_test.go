@@ -85,6 +85,9 @@ func (m *edgeProtectionMocks) NewResource(args pulumi.MockResourceArgs) (string,
 		if enableJs, ok := args.Inputs["enableJs"]; ok {
 			outputs["enableJs"] = enableJs
 		}
+
+	case "cloudflare:index/zoneDnssec:ZoneDnssec":
+		outputs["zoneId"] = testZoneID
 	}
 
 	return args.Name + "_id", resource.NewPropertyMapFromMap(outputs), nil
@@ -124,6 +127,7 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 			HSTSEnabled:                   pulumi.Bool(false),
 			AutomaticHTTPSRewritesEnabled: pulumi.Bool(false),
 			HotlinkProtectionEnabled:      pulumi.Bool(true),
+			DNSSECEnabled:                 pulumi.Bool(true),
 			Labels: map[string]string{
 				"environment": "test",
 				"team":        "edge-protection",
@@ -216,6 +220,15 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 			return nil
 		})
 		assert.True(t, <-hotlinkProtectionCh, "Hotlink Protection should match provided override")
+
+		dnssecEnabledCh := make(chan bool, 1)
+		defer close(dnssecEnabledCh)
+		edgeProtection.DNSSECEnabled.ApplyT(func(enabled bool) error {
+			dnssecEnabledCh <- enabled
+
+			return nil
+		})
+		assert.True(t, <-dnssecEnabledCh, "DNSSEC should match provided override")
 
 		// Verify zone
 		zone := edgeProtection.GetZone()
@@ -427,6 +440,15 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 			return nil
 		})
 		assert.False(t, <-hotlinkProtectionCh, "Hotlink Protection should default to disabled")
+
+		dnssecEnabledCh := make(chan bool, 1)
+		defer close(dnssecEnabledCh)
+		edgeProtection.DNSSECEnabled.ApplyT(func(enabled bool) error {
+			dnssecEnabledCh <- enabled
+
+			return nil
+		})
+		assert.False(t, <-dnssecEnabledCh, "DNSSEC should default to disabled")
 
 		return nil
 	}, pulumi.WithMocks("project", "stack", &edgeProtectionMocks{}))
@@ -1129,6 +1151,86 @@ func TestNewEdgeProtection_BotFightMode(t *testing.T) {
 			return nil
 		})
 		assert.True(t, <-enableJsCh, "JavaScript Detections should be enabled with Bot Fight Mode")
+
+		return nil
+	}, pulumi.WithMocks("project", "stack", &edgeProtectionMocks{}))
+
+	if err != nil {
+		t.Fatalf("Pulumi WithMocks failed: %v", err)
+	}
+}
+
+func TestNewEdgeProtection_DNSSEC(t *testing.T) {
+	t.Parallel()
+
+	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		args := &edge.EdgeProtectionArgs{
+			Upstreams: []edge.Upstream{
+				{
+					DomainURL:        testDomain,
+					CanonicalNameURL: testBackendUpstreamURL,
+				},
+			},
+			CloudflareZone: edge.Zone{
+				CloudflareAccountID: testCloudflareAccountID,
+			},
+			DNSSECEnabled: pulumi.Bool(true),
+		}
+
+		edgeProtection, err := edge.NewEdgeProtection(ctx, "test-dnssec-enabled", args)
+		require.NoError(t, err)
+
+		dnssec := edgeProtection.GetDNSSEC()
+		require.NotNil(t, dnssec, "DNSSEC resource should not be nil")
+
+		statusCh := make(chan string, 1)
+		defer close(statusCh)
+		dnssec.Status.ApplyT(func(status *string) error {
+			statusCh <- *status
+
+			return nil
+		})
+		assert.Equal(t, "active", <-statusCh, "DNSSEC status should be active when enabled")
+
+		return nil
+	}, pulumi.WithMocks("project", "stack", &edgeProtectionMocks{}))
+
+	if err != nil {
+		t.Fatalf("Pulumi WithMocks failed: %v", err)
+	}
+}
+
+func TestNewEdgeProtection_DNSSECDisabled(t *testing.T) {
+	t.Parallel()
+
+	err := pulumi.RunErr(func(ctx *pulumi.Context) error {
+		args := &edge.EdgeProtectionArgs{
+			Upstreams: []edge.Upstream{
+				{
+					DomainURL:        testDomain,
+					CanonicalNameURL: testBackendUpstreamURL,
+				},
+			},
+			CloudflareZone: edge.Zone{
+				CloudflareAccountID: testCloudflareAccountID,
+			},
+			// DNSSECEnabled omitted, should default to false
+		}
+
+		edgeProtection, err := edge.NewEdgeProtection(ctx, "test-dnssec-disabled", args)
+		require.NoError(t, err)
+
+		dnssec := edgeProtection.GetDNSSEC()
+		require.NotNil(t, dnssec, "DNSSEC resource should still be created to track status")
+
+		statusCh := make(chan string, 1)
+		defer close(statusCh)
+		dnssec.Status.ApplyT(func(status *string) error {
+			statusCh <- *status
+
+			return nil
+		})
+		assert.Equal(t, "disabled", <-statusCh, "DNSSEC status should be disabled by default")
 
 		return nil
 	}, pulumi.WithMocks("project", "stack", &edgeProtectionMocks{}))
