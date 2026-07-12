@@ -87,6 +87,10 @@ type EdgeProtectionArgs struct {
 	// Hotlink Protection blocks external sites from embedding your images based on Referer.
 	// Enable only when this behavior matches your content-sharing requirements.
 	HotlinkProtectionEnabled pulumi.BoolInput
+	// Whether to enable DNSSEC zone signing (optional, defaults to false).
+	// For domains registered outside Cloudflare Registrar, the generated DS record must be
+	// copied to the registrar to complete the chain of trust.
+	DNSSECEnabled pulumi.BoolInput
 	// Additional labels to apply to resources
 	Labels map[string]string
 	// Where to send DDoS attack notifications. Disabled if unset.

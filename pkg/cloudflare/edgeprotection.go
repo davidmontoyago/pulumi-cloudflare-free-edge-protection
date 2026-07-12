@@ -31,6 +31,7 @@ type EdgeProtection struct {
 	HSTSEnabled                   pulumi.BoolOutput
 	AutomaticHTTPSRewritesEnabled pulumi.BoolOutput
 	HotlinkProtectionEnabled      pulumi.BoolOutput
+	DNSSECEnabled                 pulumi.BoolOutput
 	DDoSAttackNotificationsEmail  string
 	BotFightModeEnabled           bool
 	Labels                        map[string]string
@@ -52,6 +53,7 @@ type EdgeProtection struct {
 
 	ddosAttackNotifications *cloudflare.NotificationPolicy
 	botManagement           *cloudflare.BotManagement
+	dnssec                  *cloudflare.ZoneDnssec
 }
 
 // NewEdgeProtection creates a new EdgeProtection instance with the provided configuration.
@@ -82,6 +84,7 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		HSTSEnabled:                   setDefaultBool(args.HSTSEnabled, true),
 		AutomaticHTTPSRewritesEnabled: setDefaultBool(args.AutomaticHTTPSRewritesEnabled, true),
 		HotlinkProtectionEnabled:      setDefaultBool(args.HotlinkProtectionEnabled, false),
+		DNSSECEnabled:                 setDefaultBool(args.DNSSECEnabled, false),
 		DDoSAttackNotificationsEmail:  args.DDoSAttackNotificationsEmail,
 		BotFightModeEnabled:           args.BotFightModeEnabled,
 		Labels:                        args.Labels,
@@ -100,7 +103,7 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		return nil, fmt.Errorf("failed to deploy edge protection: %w", err)
 	}
 
-	err = ctx.RegisterResourceOutputs(edgeProtection, pulumi.Map{
+	outputs := pulumi.Map{
 		"cloudflare_zone_id":                          edgeProtection.zone.ID(),
 		"cloudflare_zone_name":                        edgeProtection.zone.Name,
 		"cloudflare_zone_status":                      edgeProtection.zone.Status,
@@ -118,7 +121,19 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		"cloudflare_hsts_enabled":                     edgeProtection.HSTSEnabled,
 		"cloudflare_automatic_https_rewrites_enabled": edgeProtection.AutomaticHTTPSRewritesEnabled,
 		"cloudflare_hotlink_protection_enabled":       edgeProtection.HotlinkProtectionEnabled,
-	})
+		"cloudflare_dnssec_enabled":                   edgeProtection.DNSSECEnabled,
+	}
+
+	if edgeProtection.dnssec != nil {
+		outputs["cloudflare_dnssec_status"] = edgeProtection.dnssec.Status
+		outputs["cloudflare_dnssec_ds"] = edgeProtection.dnssec.Ds
+		outputs["cloudflare_dnssec_key_tag"] = edgeProtection.dnssec.KeyTag
+		outputs["cloudflare_dnssec_algorithm"] = edgeProtection.dnssec.Algorithm
+		outputs["cloudflare_dnssec_digest_type"] = edgeProtection.dnssec.DigestType
+		outputs["cloudflare_dnssec_digest"] = edgeProtection.dnssec.Digest
+	}
+
+	err = ctx.RegisterResourceOutputs(edgeProtection, outputs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to register resource outputs: %w", err)
 	}
@@ -134,6 +149,13 @@ func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 		return fmt.Errorf("failed to create zone: %w", err)
 	}
 	e.zone = zone
+
+	// 1b. Configure DNSSEC zone signing status.
+	dnssec, err := e.enableDNSSEC(ctx, zone)
+	if err != nil {
+		return fmt.Errorf("failed to configure DNSSEC: %w", err)
+	}
+	e.dnssec = dnssec
 
 	// 2. Create DNS records for each upstream
 	upstreamDNSRecords, err := e.createDNSRecords(ctx, zone)
@@ -285,4 +307,9 @@ func (e *EdgeProtection) GetDDoSAttackNotifications() *cloudflare.NotificationPo
 // GetBotManagement returns the bot management resource.
 func (e *EdgeProtection) GetBotManagement() *cloudflare.BotManagement {
 	return e.botManagement
+}
+
+// GetDNSSEC returns the DNSSEC resource when enabled.
+func (e *EdgeProtection) GetDNSSEC() *cloudflare.ZoneDnssec {
+	return e.dnssec
 }

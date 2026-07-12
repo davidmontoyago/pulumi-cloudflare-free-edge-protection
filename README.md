@@ -12,6 +12,7 @@ Pulumi component to setup internet-grade protection under the Cloudlflare free t
 - HSTS via `security_header` (enabled by default)
 - Automatic HTTPS Rewrites (enabled by default)
 - Optional Hotlink Protection for images
+- Optional DNSSEC zone signing
 - TLS enforcement
 - Browser integrity checks
 - Cache web assets
@@ -58,6 +59,8 @@ cloudflareEdgeProxy, err := cloudflare.NewEdgeProtection(ctx, "my-endpoint-edge-
   AutomaticHTTPSRewritesEnabled: pulumi.Bool(true),
   // Optional: enable Hotlink Protection for image embedding control
   HotlinkProtectionEnabled: pulumi.Bool(false),
+  // Optional: enable DNSSEC zone signing
+  DNSSECEnabled: pulumi.Bool(false),
   // Optional: enable Cloudflare Bot Fight Mode (can challenge API/mobile clients)
   BotFightModeEnabled: true,
 })
@@ -137,6 +140,15 @@ Use carefully: this can block legitimate external image usage (for example socia
 See:
 - https://developers.cloudflare.com/waf/tools/scrape-shield/hotlink-protection/
 - https://developers.cloudflare.com/waf/custom-rules/use-cases/exempt-partners-hotlink-protection/
+
+#### DNSSEC (optional)
+
+Enable with `DNSSECEnabled: pulumi.Bool(true)` to sign DNS responses against spoofing and cache poisoning.
+
+Cloudflare Registrar domains get the DS (Delegation Signer) record added automatically. External registrars require copying it manually from the outputs (`cloudflare_dnssec_ds`, `cloudflare_dnssec_key_tag`, `cloudflare_dnssec_algorithm`, `cloudflare_dnssec_digest_type`, `cloudflare_dnssec_digest`) into the registrar's DNSSEC settings — until then, the zone is unsigned even though `cloudflare_dnssec_status` reports `active`.
+
+See:
+- https://developers.cloudflare.com/dns/dnssec/
 
 #### Bot Fight Mode (optional)
 
