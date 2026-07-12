@@ -13,6 +13,7 @@ Pulumi component to setup internet-grade protection under the Cloudlflare free t
 - Automatic HTTPS Rewrites (enabled by default)
 - Optional Hotlink Protection for images
 - Optional DNSSEC zone signing
+- URL normalization to close WAF-bypass encoding tricks (enabled by default, stronger than Cloudflare's default)
 - TLS enforcement
 - Browser integrity checks
 - Cache web assets
@@ -61,6 +62,9 @@ cloudflareEdgeProxy, err := cloudflare.NewEdgeProtection(ctx, "my-endpoint-edge-
   HotlinkProtectionEnabled: pulumi.Bool(false),
   // Optional: enable DNSSEC zone signing
   DNSSECEnabled: pulumi.Bool(false),
+  // Optional: relax default URL normalization back to Cloudflare's own zone defaults
+  URLNormalizationType:  pulumi.String("rfc3986"),
+  URLNormalizationScope: pulumi.String("incoming"),
   // Optional: enable Cloudflare Bot Fight Mode (can challenge API/mobile clients)
   BotFightModeEnabled: true,
 })
@@ -149,6 +153,14 @@ Cloudflare Registrar domains get the DS (Delegation Signer) record added automat
 
 See:
 - https://developers.cloudflare.com/dns/dnssec/
+
+#### URL Normalization (default, stronger than Cloudflare's own default)
+
+Cloudflare's own zone default (`type: rfc3986`, `scope: incoming`) normalizes the URL that WAF/Rules see but leaves the raw URL sent to the origin unchanged. This component defaults to `type: cloudflare` (also collapses repeated slashes and backslashes) and `scope: both` (origin sees the same normalized URL), closing common encoding-based WAF bypasses end-to-end.
+
+Only the URL path is affected — headers, body, and query strings pass through unchanged, so most route definitions and query-based signature schemes are unaffected. Watch for handlers that parse the raw path outside the framework's router, or legacy gateways expecting percent-encoded paths as-is.
+
+See: https://developers.cloudflare.com/rules/normalization/
 
 #### Bot Fight Mode (optional)
 
