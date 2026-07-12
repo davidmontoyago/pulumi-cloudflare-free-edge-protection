@@ -88,6 +88,9 @@ func (m *edgeProtectionMocks) NewResource(args pulumi.MockResourceArgs) (string,
 
 	case "cloudflare:index/zoneDnssec:ZoneDnssec":
 		outputs["zoneId"] = testZoneID
+
+	case "cloudflare:index/urlNormalizationSettings:UrlNormalizationSettings":
+		outputs["zoneId"] = testZoneID
 	}
 
 	return args.Name + "_id", resource.NewPropertyMapFromMap(outputs), nil
@@ -128,6 +131,8 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 			AutomaticHTTPSRewritesEnabled: pulumi.Bool(false),
 			HotlinkProtectionEnabled:      pulumi.Bool(true),
 			DNSSECEnabled:                 pulumi.Bool(true),
+			URLNormalizationType:          pulumi.String("rfc3986"),
+			URLNormalizationScope:         pulumi.String("incoming"),
 			Labels: map[string]string{
 				"environment": "test",
 				"team":        "edge-protection",
@@ -229,6 +234,24 @@ func TestNewEdgeProtection_HappyPath(t *testing.T) {
 			return nil
 		})
 		assert.True(t, <-dnssecEnabledCh, "DNSSEC should match provided override")
+
+		urlNormalizationTypeCh := make(chan string, 1)
+		defer close(urlNormalizationTypeCh)
+		edgeProtection.URLNormalizationType.ApplyT(func(normalizationType string) error {
+			urlNormalizationTypeCh <- normalizationType
+
+			return nil
+		})
+		assert.Equal(t, "rfc3986", <-urlNormalizationTypeCh, "URL normalization type should match provided override")
+
+		urlNormalizationScopeCh := make(chan string, 1)
+		defer close(urlNormalizationScopeCh)
+		edgeProtection.URLNormalizationScope.ApplyT(func(scope string) error {
+			urlNormalizationScopeCh <- scope
+
+			return nil
+		})
+		assert.Equal(t, "incoming", <-urlNormalizationScopeCh, "URL normalization scope should match provided override")
 
 		// Verify zone
 		zone := edgeProtection.GetZone()
@@ -449,6 +472,24 @@ func TestNewEdgeProtection_WithDefaults(t *testing.T) {
 			return nil
 		})
 		assert.False(t, <-dnssecEnabledCh, "DNSSEC should default to disabled")
+
+		urlNormalizationTypeCh := make(chan string, 1)
+		defer close(urlNormalizationTypeCh)
+		edgeProtection.URLNormalizationType.ApplyT(func(normalizationType string) error {
+			urlNormalizationTypeCh <- normalizationType
+
+			return nil
+		})
+		assert.Equal(t, "cloudflare", <-urlNormalizationTypeCh, "URL normalization type should default to 'cloudflare'")
+
+		urlNormalizationScopeCh := make(chan string, 1)
+		defer close(urlNormalizationScopeCh)
+		edgeProtection.URLNormalizationScope.ApplyT(func(scope string) error {
+			urlNormalizationScopeCh <- scope
+
+			return nil
+		})
+		assert.Equal(t, "both", <-urlNormalizationScopeCh, "URL normalization scope should default to 'both'")
 
 		return nil
 	}, pulumi.WithMocks("project", "stack", &edgeProtectionMocks{}))

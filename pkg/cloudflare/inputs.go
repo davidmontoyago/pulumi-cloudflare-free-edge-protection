@@ -91,6 +91,18 @@ type EdgeProtectionArgs struct {
 	// For domains registered outside Cloudflare Registrar, the generated DS record must be
 	// copied to the registrar to complete the chain of trust.
 	DNSSECEnabled pulumi.BoolInput
+	// URL normalization type (optional, defaults to "cloudflare").
+	// Valid values: "cloudflare", "rfc3986".
+	// Cloudflare's own zone default is "rfc3986". The "cloudflare" type additionally collapses
+	// repeated slashes and converts backslashes to forward slashes before the RFC 3986 pass,
+	// closing more WAF-bypass encoding tricks.
+	URLNormalizationType pulumi.StringInput
+	// URL normalization scope (optional, defaults to "both").
+	// Valid values: "incoming", "both", "none".
+	// Cloudflare's own zone default is "incoming" (normalizes the URL seen by WAF/Rules/Workers,
+	// but forwards the original, un-normalized URL to the origin). "both" additionally normalizes
+	// the URL sent to the origin, so the origin sees the same URL the WAF evaluated.
+	URLNormalizationScope pulumi.StringInput
 	// Additional labels to apply to resources
 	Labels map[string]string
 	// Where to send DDoS attack notifications. Disabled if unset.
