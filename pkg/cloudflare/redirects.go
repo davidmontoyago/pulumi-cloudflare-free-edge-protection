@@ -10,7 +10,7 @@ import (
 
 // createRedirectRules creates modern redirect rules (replaces legacy HTTPS page rule)
 func (e *EdgeProtection) createRedirectRules(ctx *pulumi.Context, zone *cloudflare.Zone) (*cloudflare.Ruleset, error) {
-	rules := cloudflare.RulesetRuleArray{}
+	rules := make(cloudflare.RulesetRuleArray, 0, len(e.Upstreams)*2)
 	for _, upstream := range e.Upstreams {
 		rules = append(rules,
 			&cloudflare.RulesetRuleArgs{

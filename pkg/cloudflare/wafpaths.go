@@ -281,7 +281,7 @@ var MaliciousUserAgents = []string{
 // generateCMSPathBlockingExpression creates WAF expression for CMS and WordPress specific paths
 func generateCMSPathBlockingExpression() string {
 	// Group 1: CMS-related paths (WordPress, CMS-specific, Application-specific)
-	group1Paths := make([]string, 0)
+	group1Paths := make([]string, 0, len(WordPressPaths)+len(CMSSpecificPaths)+len(ApplicationSpecificPaths))
 	group1Paths = append(group1Paths, WordPressPaths...)
 	group1Paths = append(group1Paths, CMSSpecificPaths...)
 	group1Paths = append(group1Paths, ApplicationSpecificPaths...)
@@ -292,7 +292,7 @@ func generateCMSPathBlockingExpression() string {
 // generateSystemConfigPathBlockingExpression creates WAF expression for system and configuration paths
 func generateSystemConfigPathBlockingExpression() string {
 	// Group 2: System, configuration, and version control paths
-	group2Paths := make([]string, 0)
+	group2Paths := make([]string, 0, len(ConfigurationFilePaths)+len(VersionControlPaths)+len(SystemInformationPaths)+len(PathTraversalPatterns))
 	group2Paths = append(group2Paths, ConfigurationFilePaths...)
 	group2Paths = append(group2Paths, VersionControlPaths...)
 	group2Paths = append(group2Paths, SystemInformationPaths...)
@@ -304,7 +304,7 @@ func generateSystemConfigPathBlockingExpression() string {
 // generateAdminBackupPathBlockingExpression creates WAF expression for admin and backup paths
 func generateAdminBackupPathBlockingExpression() string {
 	// Group 3: Admin panels, backup files, and database management
-	group3Paths := make([]string, 0)
+	group3Paths := make([]string, 0, len(AdminPanelPaths)+len(BackupFilePaths)+len(DatabaseManagementPaths))
 	group3Paths = append(group3Paths, AdminPanelPaths...)
 	group3Paths = append(group3Paths, BackupFilePaths...)
 	group3Paths = append(group3Paths, DatabaseManagementPaths...)
@@ -315,7 +315,7 @@ func generateAdminBackupPathBlockingExpression() string {
 // generateDevAPIPathBlockingExpression creates WAF expression for development and API paths
 func generateDevAPIPathBlockingExpression() string {
 	// Group 4: Development, testing, API endpoints, and server info
-	group4Paths := make([]string, 0)
+	group4Paths := make([]string, 0, len(DevelopmentTestingPaths)+len(APIEndpointPaths)+len(ServerFilePaths))
 	group4Paths = append(group4Paths, DevelopmentTestingPaths...)
 	group4Paths = append(group4Paths, APIEndpointPaths...)
 	group4Paths = append(group4Paths, ServerFilePaths...)

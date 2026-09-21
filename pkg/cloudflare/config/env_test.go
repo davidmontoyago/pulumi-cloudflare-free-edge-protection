@@ -18,7 +18,7 @@ const (
 	testCloudflareAccountID = "test-cloudflare-account-id-123"
 )
 
-//nolint:paralleltest // Uses environment variables
+//nolint:paralleltest,goconst // Uses environment variables
 func TestLoadConfig_HappyPath(t *testing.T) {
 	// Set required environment variables
 	envVars := map[string]string{
