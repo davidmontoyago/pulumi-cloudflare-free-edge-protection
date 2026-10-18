@@ -18,6 +18,8 @@ const (
 	testBackendUpstreamURL  = "ghs.googlehosted.com"
 	testCloudflareAccountID = "test-cloudflare-account-id-123"
 	testZoneID              = "test-zone-id-123"
+	testTunnelAuth          = "eyJ-test-tunnel-token"
+	testAccessAudPrefix     = "test-aud-"
 )
 
 type edgeProtectionMocks struct{}
@@ -91,13 +93,27 @@ func (m *edgeProtectionMocks) NewResource(args pulumi.MockResourceArgs) (string,
 
 	case "cloudflare:index/urlNormalizationSettings:UrlNormalizationSettings":
 		outputs["zoneId"] = testZoneID
+
+	case "cloudflare:index/zeroTrustAccessApplication:ZeroTrustAccessApplication":
+		outputs["aud"] = testAccessAudPrefix + args.Name
+
+	case "cloudflare:index/zeroTrustAccessServiceToken:ZeroTrustAccessServiceToken":
+		outputs["clientId"] = args.Name + "_client_id"
+		outputs["clientSecret"] = args.Name + "_client_secret"
 	}
 
 	return args.Name + "_id", resource.NewPropertyMapFromMap(outputs), nil
 }
 
-func (m *edgeProtectionMocks) Call(_ pulumi.MockCallArgs) (resource.PropertyMap, error) {
-	// No function calls needed for basic edge protection test
+func (m *edgeProtectionMocks) Call(args pulumi.MockCallArgs) (resource.PropertyMap, error) {
+	if args.Token == "cloudflare:index/getZeroTrustTunnelCloudflaredToken:getZeroTrustTunnelCloudflaredToken" {
+		return resource.NewPropertyMapFromMap(map[string]interface{}{
+			"accountId": args.Args["accountId"],
+			"tunnelId":  args.Args["tunnelId"],
+			"token":     testTunnelAuth,
+		}), nil
+	}
+
 	return resource.PropertyMap{}, nil
 }
 

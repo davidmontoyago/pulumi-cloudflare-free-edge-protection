@@ -33,17 +33,26 @@ func (e *EdgeProtection) createZone(ctx *pulumi.Context) (*cloudflare.Zone, erro
 func (e *EdgeProtection) createDNSRecords(ctx *pulumi.Context, zone *cloudflare.Zone) ([]*cloudflare.DnsRecord, error) {
 	upstreamRecords := make([]*cloudflare.DnsRecord, 0, len(e.Upstreams))
 	for _, upstream := range e.Upstreams {
-		recordName := strings.Split(upstream.DomainURL, ".")[0]
+		recordName := upstreamRecordName(upstream)
 		recordResourceName := e.NewResourceName(fmt.Sprintf("upstream-%s", recordName), "dns", 63)
+
+		content := pulumi.String(upstream.CanonicalNameURL).ToStringOutput()
+		// Enable Cloudflare proxy for CDN + DDoS protection
+		// For first time setup, set to false until the
+		// cross-cloud DNS is resolved (E.g. In GCP Doman Mapping shows success).
+		proxied := !upstream.DisableProtection
+		if isTunnelUpstream(upstream) {
+			content = tunnelCNAMETarget(e.tunnel)
+			// Tunnel hostnames only resolve when proxied.
+			proxied = true
+		}
+
 		record, err := cloudflare.NewDnsRecord(ctx, recordResourceName, &cloudflare.DnsRecordArgs{
 			ZoneId:  zone.ID(),
 			Name:    pulumi.String(upstream.DomainURL),
-			Content: pulumi.String(upstream.CanonicalNameURL),
+			Content: content,
 			Type:    pulumi.String("CNAME"),
-			// Enable Cloudflare proxy for CDN + DDoS protection
-			// For first time setup, set to false until the
-			// cross-cloud DNS is resolved (E.g. In GCP Doman Mapping shows success).
-			Proxied: pulumi.Bool(!upstream.DisableProtection),
+			Proxied: pulumi.Bool(proxied),
 			Ttl:     pulumi.Float64(1), // Automatic TTL when proxied
 		}, pulumi.Parent(e), pulumi.Protect(e.CloudflareZone.Protected))
 		if err != nil {
@@ -53,4 +62,9 @@ func (e *EdgeProtection) createDNSRecords(ctx *pulumi.Context, zone *cloudflare.
 	}
 
 	return upstreamRecords, nil
+}
+
+// upstreamRecordName returns the first label of the upstream domain (e.g. "myapp" for "myapp.mydomain.dev").
+func upstreamRecordName(upstream Upstream) string {
+	return strings.Split(upstream.DomainURL, ".")[0]
 }

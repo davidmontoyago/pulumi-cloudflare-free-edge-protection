@@ -20,6 +20,8 @@ Pulumi component to setup internet-grade protection under the Cloudlflare free t
 - [Challenge requests](https://developers.cloudflare.com/cloudflare-challenges/) based on threat score
 - Request header transforms to pass real client IP, geolocation, TLS, and transport headers to upstream
 - Optional [Bot Fight Mode](https://developers.cloudflare.com/bots/get-started/bot-fight-mode/)
+- Optional [Cloudflare Tunnel](https://developers.cloudflare.com/tunnel/) connector: origins need no public ingress
+- Optional [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/) identity-aware auth per upstream or path
 
 ### Pre-requisites
 - A cloudflare free tier account
@@ -174,6 +176,24 @@ See:
 - https://developers.cloudflare.com/bots/get-started/bot-fight-mode/
 - https://developers.cloudflare.com/waf/feature-interoperability/
 
+#### Zero Trust: Tunnel and Access (optional)
+
+Free for up to 50 users on the Zero Trust Free plan. Requires an existing Zero Trust organization (team name).
+
+- `Connector: cloudflare.ConnectorTunnel` routes the upstream through a Cloudflare Tunnel instead of a CNAME to `CanonicalNameURL`. `OriginURL` is the origin as seen from `cloudflared`; its host is sent as the Host header and SNI. Run `cloudflared` next to the origin with the token from `GetTunnelToken()`.
+- `Access` creates a self-hosted Access application with policies for emails, email domains and service tokens, optionally scoped to `Paths`. With a tunnel, `cloudflared` also rejects requests without a valid Access JWT.
+
+```go
+Upstreams: []cloudflare.Upstream{
+  {DomainURL: "myapp.mydomain.dev", Connector: cloudflare.ConnectorTunnel, OriginURL: frontend.Uri},
+  {DomainURL: "api-myapp.mydomain.dev", Connector: cloudflare.ConnectorTunnel, OriginURL: backend.Uri,
+    Access: &cloudflare.AccessConfig{Paths: []string{"/admin"}, AllowedEmails: []string{"me@mydomain.dev"}}},
+},
+ZeroTrust: &cloudflare.ZeroTrust{TeamName: "myteam"},
+```
+
+The tunnel token is a secret output and is not exported by the component. Store it in the origin cloud's secret manager and don't add it to stack outputs. See [docs/design/zero-trust-endpoints.md](docs/design/zero-trust-endpoints.md).
+
 Rules
 - 70 Cloudflare Rules
 - 5 WAF Rules
@@ -181,7 +201,7 @@ Rules
 
 ### Upstream security
 
-Make sure the upstream services allow-list Cloudflare IPs to only allow traffic from the edge proxies.
+Make sure the upstream services allow-list Cloudflare IPs to only allow traffic from the edge proxies. With the tunnel connector, disable public ingress on the origin instead (e.g. Cloud Run `internal` ingress).
 
 ### Client IP, geolocation, TLS, and transport forwarding
 

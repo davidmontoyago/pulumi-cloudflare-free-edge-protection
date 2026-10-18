@@ -3,6 +3,7 @@ package cloudflare
 
 import (
 	"fmt"
+	"strings"
 
 	namer "github.com/davidmontoyago/commodity-namer"
 	"github.com/pulumi/pulumi-cloudflare/sdk/v6/go/cloudflare"
@@ -36,6 +37,7 @@ type EdgeProtection struct {
 	URLNormalizationScope         pulumi.StringOutput
 	DDoSAttackNotificationsEmail  string
 	BotFightModeEnabled           bool
+	ZeroTrust                     *ZeroTrust
 	Labels                        map[string]string
 
 	name string
@@ -57,6 +59,14 @@ type EdgeProtection struct {
 	botManagement           *cloudflare.BotManagement
 	dnssec                  *cloudflare.ZoneDnssec
 	urlNormalization        *cloudflare.UrlNormalizationSettings
+
+	// Zero Trust resources
+	tunnel              *cloudflare.ZeroTrustTunnelCloudflared
+	tunnelConfig        *cloudflare.ZeroTrustTunnelCloudflaredConfig
+	tunnelToken         pulumi.StringOutput
+	accessApplications  map[string]*cloudflare.ZeroTrustAccessApplication
+	accessPolicies      map[string][]*cloudflare.ZeroTrustAccessPolicy
+	accessServiceTokens map[string][]*cloudflare.ZeroTrustAccessServiceToken
 }
 
 // NewEdgeProtection creates a new EdgeProtection instance with the provided configuration.
@@ -66,6 +76,9 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 	}
 	if args.CloudflareZone.CloudflareAccountID == "" {
 		return nil, fmt.Errorf("cloudflare account ID is required")
+	}
+	if err := validateZeroTrust(args); err != nil {
+		return nil, err
 	}
 
 	edgeProtection := &EdgeProtection{
@@ -92,6 +105,7 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		URLNormalizationScope:         setDefaultString(args.URLNormalizationScope, "both"),
 		DDoSAttackNotificationsEmail:  args.DDoSAttackNotificationsEmail,
 		BotFightModeEnabled:           args.BotFightModeEnabled,
+		ZeroTrust:                     args.ZeroTrust,
 		Labels:                        args.Labels,
 
 		name: name,
@@ -140,6 +154,15 @@ func NewEdgeProtection(ctx *pulumi.Context, name string, args *EdgeProtectionArg
 		outputs["cloudflare_dnssec_digest"] = edgeProtection.dnssec.Digest
 	}
 
+	// The tunnel token is intentionally not registered. Use GetTunnelToken().
+	if edgeProtection.tunnel != nil {
+		outputs["cloudflare_tunnel_id"] = edgeProtection.tunnel.ID()
+	}
+	outputs["cloudflare_access_application_count"] = pulumi.Int(len(edgeProtection.accessApplications))
+	for domain, app := range edgeProtection.accessApplications {
+		outputs[fmt.Sprintf("cloudflare_access_aud_%s", strings.ReplaceAll(domain, ".", "_"))] = app.Aud
+	}
+
 	err = ctx.RegisterResourceOutputs(edgeProtection, outputs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to register resource outputs: %w", err)
@@ -172,12 +195,27 @@ func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 	}
 	e.urlNormalization = urlNormalization
 
+	// 1d. Create a Cloudflare Tunnel when any upstream uses it.
+	if hasTunnelUpstreams(e.Upstreams) {
+		tunnel, err := e.createTunnel(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to create tunnel: %w", err)
+		}
+		e.tunnel = tunnel
+	}
+
 	// 2. Create DNS records for each upstream
 	upstreamDNSRecords, err := e.createDNSRecords(ctx, zone)
 	if err != nil {
 		return fmt.Errorf("failed to create upstream DNS records: %w", err)
 	}
 	e.upstreamDNSRecords = upstreamDNSRecords
+
+	// 2b. Create Access applications, then route tunnel upstreams.
+	err = e.deployZeroTrust(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to deploy zero trust resources: %w", err)
+	}
 
 	// 3. Configure SSL/TLS settings
 	zoneSettings, err := e.configureTLSSettings(ctx, zone)
@@ -262,6 +300,76 @@ func (e *EdgeProtection) deploy(ctx *pulumi.Context) error {
 	return nil
 }
 
+// deployZeroTrust creates Access applications and the tunnel ingress config.
+func (e *EdgeProtection) deployZeroTrust(ctx *pulumi.Context) error {
+	e.accessApplications = map[string]*cloudflare.ZeroTrustAccessApplication{}
+	e.accessPolicies = map[string][]*cloudflare.ZeroTrustAccessPolicy{}
+	e.accessServiceTokens = map[string][]*cloudflare.ZeroTrustAccessServiceToken{}
+
+	for _, upstream := range e.Upstreams {
+		if upstream.Access == nil {
+			continue
+		}
+		access, err := e.createAccessApplication(ctx, upstream)
+		if err != nil {
+			return fmt.Errorf("failed to create access application: %w", err)
+		}
+		e.accessApplications[upstream.DomainURL] = access.application
+		e.accessPolicies[upstream.DomainURL] = access.policies
+		e.accessServiceTokens[upstream.DomainURL] = access.serviceTokens
+	}
+
+	if e.tunnel == nil {
+		return nil
+	}
+
+	tunnelConfig, err := e.createTunnelConfig(ctx, e.tunnel)
+	if err != nil {
+		return fmt.Errorf("failed to create tunnel config: %w", err)
+	}
+	e.tunnelConfig = tunnelConfig
+	e.tunnelToken = e.newTunnelToken(ctx, e.tunnel)
+
+	return nil
+}
+
+// validateZeroTrust validates connector and Access settings of each upstream.
+func validateZeroTrust(args *EdgeProtectionArgs) error {
+	for _, upstream := range args.Upstreams {
+		switch upstream.Connector {
+		case "", ConnectorDNS:
+		case ConnectorTunnel:
+			if upstream.OriginURL == nil {
+				return fmt.Errorf("origin URL is required for tunnel upstream %s", upstream.DomainURL)
+			}
+		default:
+			return fmt.Errorf("invalid connector %q for upstream %s", upstream.Connector, upstream.DomainURL)
+		}
+
+		if upstream.Access == nil {
+			continue
+		}
+		if len(upstream.Access.AllowedEmails)+len(upstream.Access.AllowedEmailDomains)+len(upstream.Access.ServiceTokens) == 0 {
+			return fmt.Errorf("access for upstream %s requires allowed emails, email domains or service tokens", upstream.DomainURL)
+		}
+		if isTunnelUpstream(upstream) && (args.ZeroTrust == nil || args.ZeroTrust.TeamName == "") {
+			return fmt.Errorf("zero trust team name is required for tunnel upstream %s with access", upstream.DomainURL)
+		}
+	}
+
+	return nil
+}
+
+func hasTunnelUpstreams(upstreams []Upstream) bool {
+	for _, upstream := range upstreams {
+		if isTunnelUpstream(upstream) {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Getter methods for accessing internal resources
 
 // GetZone returns the Cloudflare Zone resource.
@@ -332,4 +440,36 @@ func (e *EdgeProtection) GetDNSSEC() *cloudflare.ZoneDnssec {
 // GetURLNormalizationSettings returns the URL normalization settings resource.
 func (e *EdgeProtection) GetURLNormalizationSettings() *cloudflare.UrlNormalizationSettings {
 	return e.urlNormalization
+}
+
+// GetTunnel returns the Cloudflare Tunnel resource when any upstream uses ConnectorTunnel.
+func (e *EdgeProtection) GetTunnel() *cloudflare.ZeroTrustTunnelCloudflared {
+	return e.tunnel
+}
+
+// GetTunnelConfig returns the tunnel ingress configuration resource.
+func (e *EdgeProtection) GetTunnelConfig() *cloudflare.ZeroTrustTunnelCloudflaredConfig {
+	return e.tunnelConfig
+}
+
+// GetTunnelToken returns the secret token cloudflared uses to run the tunnel.
+// Only set when any upstream uses ConnectorTunnel.
+// Pass it to the origin cloud's secret store; do not export it as a stack output.
+func (e *EdgeProtection) GetTunnelToken() pulumi.StringOutput {
+	return e.tunnelToken
+}
+
+// GetAccessApplications returns the Access applications keyed by upstream domain.
+func (e *EdgeProtection) GetAccessApplications() map[string]*cloudflare.ZeroTrustAccessApplication {
+	return e.accessApplications
+}
+
+// GetAccessPolicies returns the Access policies keyed by upstream domain.
+func (e *EdgeProtection) GetAccessPolicies() map[string][]*cloudflare.ZeroTrustAccessPolicy {
+	return e.accessPolicies
+}
+
+// GetAccessServiceTokens returns the Access service tokens keyed by upstream domain.
+func (e *EdgeProtection) GetAccessServiceTokens() map[string][]*cloudflare.ZeroTrustAccessServiceToken {
+	return e.accessServiceTokens
 }
