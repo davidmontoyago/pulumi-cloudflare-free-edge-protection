@@ -5,8 +5,8 @@ go 1.26.6
 require (
 	github.com/davidmontoyago/commodity-namer v0.2.0
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/pulumi/pulumi-cloudflare/sdk/v6 v6.23.3
-	github.com/pulumi/pulumi/sdk/v3 v3.274.1
+	github.com/pulumi/pulumi-cloudflare/sdk/v6 v6.24.0
+	github.com/pulumi/pulumi/sdk/v3 v3.276.0
 	github.com/stretchr/testify v1.12.1
 )
 
@@ -57,7 +57,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/kevinburke/ssh_config v1.6.0 // indirect
-	github.com/klauspost/compress v1.20.0 // indirect
+	github.com/klauspost/compress v1.20.2 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
 	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
